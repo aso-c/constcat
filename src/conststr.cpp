@@ -73,6 +73,7 @@ struct prnstr
 
 int main()
 {
+#if 0
     std::cout << "The number of lowercase letters in \"Hello, world!\" is ";
     constN<count_lower("Hello, world!")>(); // the string literal is implicitly
                                             // converted to conststr
@@ -81,4 +82,12 @@ int main()
     conststr jet("Jet Fighter");
 
     std::cout << "Const str is a: \"" << jet << "\"" << std::endl;
+#endif
+
+    std::string_view tst(generate_str('a', 'b', 'c'));
+
+    std::cout << "Generated string is: " << '"' << tst.data() << '"' << std::endl;
+
+    return 0;
+
 }; /* main() */
