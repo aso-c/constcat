@@ -10,6 +10,7 @@
 #include <iostream>
 #include <stdexcept>
 
+#include <array>
 #include <string_view>
 
 #include "concat.hpp"
@@ -84,7 +85,7 @@ int main()
     std::cout << "Const str is a: \"" << jet << "\"" << std::endl;
 #endif
 
-    std::string_view tst(generate_str('a', 'b', 'c'));
+    const std::string_view tst(generate_str('a', 'b', 'c').data());
 
     std::cout << "Generated string is: " << '"' << tst.data() << '"' << std::endl;
 
