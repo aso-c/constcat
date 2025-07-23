@@ -88,6 +88,7 @@ int main()
     const std::string_view tst(generate_str('a', 'b', 'c').data());
 
     std::cout << "Generated string is: " << '"' << tst.data() << '"' << std::endl;
+    std::cout << "Regenerated string is: " << '"' << regen<9>("ABBA test").data() << '"' << std::endl;
 
     return 0;
 

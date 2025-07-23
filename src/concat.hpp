@@ -10,9 +10,9 @@
 #define __CONCAT_HPP__
 
 
-constexpr /*consteval*/ /*std::string_view*/ std::array<char, 4>  generate_str(const char c1, const char c2, const char c3)
+constexpr /*consteval*/ std::array<char, 4>  generate_str(const char c1, const char c2, const char c3)
 {
-//	const char res[] = {c1, c2, c3, '\0'};
+	const char res[] = {c1, c2, c3, '\0'};
 
 	std::cout << "c1 is: '" << c1 << "'" << std::endl;
 	std::cout << "c2 is: '" << c2 << "'" << std::endl;
@@ -25,6 +25,24 @@ constexpr /*consteval*/ /*std::string_view*/ std::array<char, 4>  generate_str(c
 	return {{c1, c2, c3}};
 	// return /*char*(*/{c1, c2, c3}/*)*/;
 }; /*generate_str */
+
+
+template <std::size_t len, std::size_t offs, typename ... Chs>
+//template <std::size_t len, std::size_t offs, char ... cs>
+constexpr std::array<char, len+1> regen(std::string_view str/*, std::size_t offs*//*, char cc,*/, Chs ...cs)
+{
+	if constexpr (len > offs)
+		return regen<len, offs+1, char, Chs...>(str/*, offs + 1*/, str[offs], cs...);
+	else
+		return {cs..., '\0'};
+}; /* regen() */
+
+template <size_t len>
+constexpr std::array<char, len+1> regen(std::string_view str)
+{
+	return regen<len, 0>(std::forward<std::string_view>(str)/*, (std::size_t)0*/);
+}; /* regen() */
+
 
 
 #endif	// __CONCAT_HPP__
