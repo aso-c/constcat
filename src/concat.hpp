@@ -27,12 +27,11 @@ constexpr /*consteval*/ std::array<char, 4>  generate_str(const char c1, const c
 }; /*generate_str */
 
 
-template <std::size_t len, std::size_t offs, typename ... Chs>
-//template <std::size_t len, std::size_t offs, char ... cs>
-constexpr std::array<char, len+1> regen(std::string_view str/*, std::size_t offs*//*, char cc,*/, Chs ...cs)
+template <std::size_t len, std::size_t curr, typename ... Chs>
+constexpr std::array<char, len+1> regen(std::string_view str, Chs ...cs)
 {
-	if constexpr (len > offs)
-		return regen<len, offs+1, char, Chs...>(str/*, offs + 1*/, str[offs], cs...);
+	if constexpr (curr > 0)
+		return regen<len, curr-1, char, Chs...>(str, str[curr-1], cs...);
 	else
 		return {cs..., '\0'};
 }; /* regen() */
@@ -40,7 +39,7 @@ constexpr std::array<char, len+1> regen(std::string_view str/*, std::size_t offs
 template <size_t len>
 constexpr std::array<char, len+1> regen(std::string_view str)
 {
-	return regen<len, 0>(std::forward<std::string_view>(str)/*, (std::size_t)0*/);
+	return regen<len, len>(std::forward<std::string_view>(str));
 }; /* regen() */
 
 
