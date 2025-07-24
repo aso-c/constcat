@@ -46,7 +46,36 @@ template <size_t len>
 constexpr std::array<char, len> regen_c(const char (&str)[len])
 {
 	return regen<len-1, len-1>(str);
-}; /* regen() */
+}; /* regen_c() */
+
+
+template <size_t len>
+class regen_clss
+{
+	template <size_t curr, typename ... Chs>
+//	constexpr std::array<char, len+1> operator()(std::string_view str, Chs ...cs)
+	constexpr std::array<char, len> operator()(const char (&str)[len], Chs ...cs)
+	{
+		if constexpr (curr > 0)
+//			return regen<len, curr-1, char, Chs...>(str, str[curr-1], cs...);
+			return operator()<curr-1, char, Chs...>(str, str[curr-1], cs...);
+		else
+			return {cs..., '\0'};
+	};
+
+#if 0	// exclude regen_c method
+//	template <size_t len>
+	constexpr std::array<char, len> regen_c(const char (&str)[len])
+//	constexpr std::array<char, len> operator()(const char (&str)[len])
+	{
+		return operator()<len-1>(str);
+	}; /* regen_c() */
+#endif	// exclude regen_c method
+
+
+
+}; /* class regen_clss */
+
 
 
 
