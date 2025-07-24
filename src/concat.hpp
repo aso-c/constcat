@@ -37,9 +37,15 @@ constexpr std::array<char, len+1> regen(std::string_view str, Chs ...cs)
 }; /* regen() */
 
 template <size_t len>
-constexpr std::array<char, len+1> regen(std::string_view str)
+constexpr std::array<char, len+1> regen(const std::string_view str)
 {
-	return regen<len, len>(std::forward<std::string_view>(str));
+	return regen<len, len>(str);
+}; /* regen() */
+
+template <size_t len>
+constexpr std::array<char, len> regen_c(const char (&str)[len])
+{
+	return regen<len-1, len-1>(str);
 }; /* regen() */
 
 

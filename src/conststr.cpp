@@ -89,6 +89,7 @@ int main()
 
     std::cout << "Generated string is: " << '"' << tst.data() << '"' << std::endl;
     std::cout << "Regenerated string is: " << '"' << regen<9>("ABBA test").data() << '"' << std::endl;
+    std::cout << "Regenerated C-string is: " << '"' << regen_c("C-string ABBA test").data() << '"' << std::endl;
 
     return 0;
 
