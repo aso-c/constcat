@@ -49,18 +49,107 @@ constexpr std::array<char, len> regen_c(const char (&str)[len])
 }; /* regen_c() */
 
 
+
+//
+// Class "splitter" - split array into individual elements and return
+//	pointer to 'exec' procedure, that called with all it's items
+//
+// Parameters:
+//	- size - size_t, size of input array
+//	- TItem - type of the items of the array
+//	- TOut	- return type of the 'exec' procedure
+//
+template <size_t size, typename TItem, typename TOut>
+class splitter
+{
+public:
+
+	using outgen = TOut (*)();
+
+#if 0
+	template <size_t curr, typename ... Its>
+	constexpr outgen gen(const TItem (&buf)[size], Its ...its)
+	{
+		if constexpr (curr > 0)
+			return gen<curr-1, TItem, Its...>(buf, buf[curr-1], its...);
+		else
+//			return {its..., '\0'};
+			return exec();
+	};
+#endif
+
+	template <size_t curr, TOut ... its>
+	constexpr outgen gen(const TItem (&buf)[size])
+	{
+		if constexpr (curr > 0)
+			return gen<curr-1, buf[curr-1], its...>(buf);
+		else
+//			return {its..., '\0'};
+			return exec();
+	};
+
+	outgen exec;	// pointer to exec() procedure
+
+}; /*splitter  */
+
+
+//
+// Class "splitter_t" - split array into individual elements
+// and return object TOut by call gather() procedure
+//
+// Parameters:
+//	- TItem - type of the items of the array
+//	- TOut	- return type of the 'gather()' procedure
+//
+template <typename TItem, typename TOut>
+class splitter_t
+{
+public:
+
+	using outgen = TOut (*)();
+
+#if 0
+	template <size_t curr, typename ... Its>
+	constexpr outgen gen(const TItem (&buf)[size], Its ...its)
+	{
+		if constexpr (curr > 0)
+			return gen<curr-1, TItem, Its...>(buf, buf[curr-1], its...);
+		else
+//			return {its..., '\0'};
+			return exec();
+	};
+#endif
+
+	template <size_t size, TItem ... its>
+	constexpr TOut yeld(const TItem (&buf)[size])
+	{
+		if constexpr (size > 0)
+			return yeld<size-1, buf[size-1], its...>(buf);
+		else
+//			return {its..., '\0'};
+			return gather<its...>();
+	};
+
+	template <TItem ... its>
+	TOut gather();	// final procedure, called from the yeld()
+
+}; /*splitter_t  */
+
+
 template <size_t len>
 class regen_clss
 {
+public:
 	template <size_t curr, typename ... Chs>
 //	constexpr std::array<char, len+1> operator()(std::string_view str, Chs ...cs)
-	constexpr std::array<char, len> operator()(const char (&str)[len], Chs ...cs)
+	constexpr static std::array<char, len> operator()(const char (&str)[len], Chs ...cs)
+//	constexpr std::array<char, len> data(const char (&str)[len], Chs ...cs)
 	{
 		if constexpr (curr > 0)
 //			return regen<len, curr-1, char, Chs...>(str, str[curr-1], cs...);
 			return operator()<curr-1, char, Chs...>(str, str[curr-1], cs...);
 		else
-			return {cs..., '\0'};
+			return {cs.../*, '\0'*/};
 	};
 
 #if 0	// exclude regen_c method
@@ -72,10 +161,14 @@ class regen_clss
 	}; /* regen_c() */
 #endif	// exclude regen_c method
 
-
-
 }; /* class regen_clss */
 
+
+template <typename item, size_t size>
+inline std::ostream& operator << (std::ostream& out, const std::array<item, size> &arr) {
+	return out << arr.data();
+//	return out;
+};
 
 
 
