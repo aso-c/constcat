@@ -59,26 +59,29 @@ constexpr std::array<char, len> regen_c(const char (&str)[len])
 //	- TItem - type of the items of the array
 //	- TOut	- return type of the 'exec' procedure
 //
-template <size_t size, typename TItem, typename TOut>
+template </*size_t size,*/ typename TItem, typename TOut, class Implementer>
 class splitter
 {
 public:
 
-	using outgen = TOut (*)();
+//	using outgen = TOut (*)();
 
-#if 0
-	template <size_t curr, typename ... Its>
-	constexpr outgen gen(const TItem (&buf)[size], Its ...its)
+	template <size_t size, typename ... Its>
+	constexpr TOut gen(const TItem (&buf)[size], Its ...its)
 	{
-		if constexpr (curr > 0)
-			return gen<curr-1, TItem, Its...>(buf, buf[curr-1], its...);
+		if constexpr (size > 1)
+		{
+			std::clog << "Processing item " << size-1 << ": '" << buf[size-2] << '\'' <<  std::endl;
+			return gen<size-1, TItem, Its...>(reinterpret_cast<const TItem (&)[size-1]>(buf), buf[size-1], its...);
+		}
 		else
 //			return {its..., '\0'};
-			return exec();
+//			return exec();
+			return Implementer::gather/*<Its...>*/(buf[0], its...);
 	};
-#endif
 
-	template <size_t curr, TOut ... its>
+#if 0
+	template <size_t curr, TItem ... its>
 	constexpr outgen gen(const TItem (&buf)[size])
 	{
 		if constexpr (curr > 0)
@@ -87,14 +90,33 @@ public:
 //			return {its..., '\0'};
 			return exec();
 	};
+#endif
 
-	outgen exec;	// pointer to exec() procedure
+//	outgen exec;	// pointer to exec() procedure
+
+//	template <typename ... Its>
+//	TOut gather(Its...);
 
 }; /*splitter  */
 
+/// The splitter test class
+template <std::size_t len>
+class tst_split: public splitter<char, int, tst_split<len>>
+{
+public:
+	constexpr tst_split(const char (&instr)[len]):
+		n(/*splitter<char, int, tst_split<len> >::*/this->gen/*<len>*/(instr))
+	{};
+
+	template <typename ... Its>
+	static int gather(Its ... its) { ((std::clog << "-----------" << std::endl) << ... << its) << std::endl;   return 0;};
+
+	int n;
+}; /* tst_split */
+
 
 //
-// Class "splitter_t" - split array into individual elements
+// Class "splitter_c" - split array into individual elements
 // and return object TOut by call gather() procedure
 //
 // Parameters:
@@ -102,7 +124,7 @@ public:
 //	- TOut	- return type of the 'gather()' procedure
 //
 template <typename TItem, typename TOut>
-class splitter_t
+class splitter_c
 {
 public:
 
@@ -124,7 +146,10 @@ public:
 	constexpr TOut yeld(const TItem (&buf)[size])
 	{
 		if constexpr (size > 0)
+		{
+			std::clog << "Processing item " << (size - 1) << ": '" << buf[size-1] << "\';" << std::endl;
 			return yeld<size-1, buf[size-1], its...>(buf);
+		}
 		else
 //			return {its..., '\0'};
 			return gather<its...>();
@@ -133,7 +158,22 @@ public:
 	template <TItem ... its>
 	TOut gather();	// final procedure, called from the yeld()
 
-}; /*splitter_t  */
+}; /*splitter_c  */
+
+
+/// The splitter_c test class
+template <std::size_t len>
+class tst_split_c: public splitter_c<char, int>
+{
+public:
+	constexpr tst_split_c(const char (&instr)[len]):
+		n(yeld(instr))
+	{};
+
+	int n;
+}; /* tst_split_c */
+
+
 
 
 template <size_t len>
@@ -164,7 +204,7 @@ public:
 }; /* class regen_clss */
 
 
-template <typename item, size_t size>
+template <typename item, std::size_t size>
 inline std::ostream& operator << (std::ostream& out, const std::array<item, size> &arr) {
 	return out << arr.data();
 //	return out;

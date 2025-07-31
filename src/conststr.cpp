@@ -91,6 +91,11 @@ int main()
     std::cout << "Regenerated string is: " << '"' << regen<9>("ABBA test").data() << '"' << std::endl;
     std::cout << "Regenerated C-string is: " << '"' << regen_c("C-string ABBA test").data() << '"' << std::endl;
     std::cout << "Regenerate with class on C-string: " << '"' << regen_clss<29>::operator()<29>("Class on C-string BUBBA test") << '"' << std::endl;
+    std::clog << "Test the splitter class with C-string:" << std::endl << "===================" << std::endl;
+//    tst_split_c("Split the C-string Obba-Dobba may be splitted test");
+    tst_split("Split the C-string Obba-Dobba may be splitted test");
+    std::clog << "===================" << std::endl;
+
 
     return 0;
 
