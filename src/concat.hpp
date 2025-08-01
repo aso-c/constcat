@@ -52,14 +52,14 @@ constexpr std::array<char, len> regen_c(const char (&str)[len])
 
 //
 // Class "splitter" - split array into individual elements and return
-//	pointer to 'exec' procedure, that called with all it's items
+// object TOut, result calling the Implementer::gather() procedure
 //
 // Parameters:
 //	- size - size_t, size of input array
 //	- TItem - type of the items of the array
 //	- TOut	- return type of the 'exec' procedure
 //
-template </*size_t size,*/ typename TItem, typename TOut, class Implementer>
+template < typename TItem, typename TOut, class Implementer>
 class splitter
 {
 public:
@@ -69,11 +69,9 @@ public:
 	template <size_t size, typename ... Its>
 	constexpr TOut gen(const TItem (&buf)[size], Its ...its)
 	{
+		std::clog << "Processing item " << size-1 << ": '" << (buf[size-1]? buf[size-1]: '.') << '\'' <<  std::endl;
 		if constexpr (size > 1)
-		{
-			std::clog << "Processing item " << size-1 << ": '" << buf[size-2] << '\'' <<  std::endl;
 			return gen<size-1, TItem, Its...>(reinterpret_cast<const TItem (&)[size-1]>(buf), buf[size-1], its...);
-		}
 		else
 //			return {its..., '\0'};
 //			return exec();
@@ -105,11 +103,11 @@ class tst_split: public splitter<char, int, tst_split<len>>
 {
 public:
 	constexpr tst_split(const char (&instr)[len]):
-		n(/*splitter<char, int, tst_split<len> >::*/this->gen/*<len>*/(instr))
+		n(this->gen(instr))
 	{};
 
 	template <typename ... Its>
-	static int gather(Its ... its) { ((std::clog << "-----------" << std::endl) << ... << its) << std::endl;   return 0;};
+	static int gather(Its ... its) { ((std::clog << "--[ splitter class test completer ]-----------" << std::endl) << ... << its) << std::endl;   return 0;};
 
 	int n;
 }; /* tst_split */
@@ -145,9 +143,10 @@ public:
 	template <size_t size, TItem ... its>
 	constexpr TOut yeld(const TItem (&buf)[size])
 	{
+		std::clog << "Processing item " << (size - 1) << ": '" << buf[size-1] << "\';" << std::endl;
 		if constexpr (size > 0)
 		{
-			std::clog << "Processing item " << (size - 1) << ": '" << buf[size-1] << "\';" << std::endl;
+//			std::clog << "Processing item " << (size - 1) << ": '" << buf[size-1] << "\';" << std::endl;
 			return yeld<size-1, buf[size-1], its...>(buf);
 		}
 		else
@@ -173,6 +172,57 @@ public:
 	int n;
 }; /* tst_split_c */
 
+
+
+//-----------------------------------------------------------------------------------------------------------------------------
+
+//
+// Template function "splitter_f" - split array into individual elements
+// and return object TOut by calling pactor->gather() procedure all splitted items
+//
+// Parameters:
+//	- size - size_t, size of input array
+//	- TItem - type of the items of the array
+//	- TOut	- return type of the 'exec' procedure
+//
+template <typename TItem, /*typename TOut,*/ class TActor>
+class splitter_f
+{
+public:
+
+	template <size_t size, typename TOut /*= std::array<TItem, size>*/, /*class TActor,*/ typename ... Its>
+	static constexpr TOut yeld(TActor* actor, const TItem (&buf)[size], Its ...its)
+	{
+		std::clog << "Processing item " << size-1 << ": '" << (buf[size-1]? buf[size-1]: '.') << '\'' <<  std::endl;
+		if constexpr (size > 1)
+			return yeld<size-1, TOut, TItem, Its...>(actor, reinterpret_cast<const TItem (&)[size-1]>(buf), buf[size-1], its...);
+		else
+//			return {its..., '\0'};
+			return actor->gather/*<TItem, Its... >*/(buf[0], its...);
+	};
+
+//	template <typename ... Its>
+//	TOut gather(Its...);
+
+}; /*splitter_f */
+
+/// The splitter test class
+template <std::size_t len>
+class tst_split_f/*: public splitter<char, int, tst_split<len>>*/
+{
+public:
+	constexpr tst_split_f(const char (&instr)[len]):
+		n(splitter_f<char, tst_split_f<len>/*std::decay<decltype(*this)>::type*//*std::decay_t<decltype(*this)>*/>::template yeld<len, int> (this, instr))
+	{};
+
+	template <typename ... Its>
+	int gather(Its ... its) { ((std::clog << "--f_splitter_test-----------" << std::endl) << ... << its) << std::endl;   return 0;};
+
+	int n;
+}; /* tst_split */
+
+
+//-----------------------------------------------------------------------------------------------------------------------------
 
 
 
