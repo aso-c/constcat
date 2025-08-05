@@ -85,20 +85,20 @@ int main()
     std::cout << "Const str is a: \"" << jet << "\"" << std::endl;
 #endif
 
+#if 0
     const std::string_view tst(generate_str('a', 'b', 'c').data());
 
     std::cout << "Generated string is: " << '"' << tst.data() << '"' << std::endl;
     std::cout << "Regenerated string is: " << '"' << regen<9>("ABBA test").data() << '"' << std::endl;
     std::cout << "Regenerated C-string is: " << '"' << regen_c("C-string ABBA test").data() << '"' << std::endl;
-    std::cout << "Regenerate with class on C-string: " << '"' << regen_clss<29>::operator()<29>("Class on C-string BUBBA test") << '"' << std::endl;
+    std::cout << "Regenerate with class on C-string: " << '"' << regen_clss<29>::operator()<29>("Class on C-string BUBBA test") << '"'
+    		  << std::endl << std::flush;
+#endif
     std::clog << "Test the splitter class with C-string:" << std::endl
     		  << "===================" << std::endl;
-//    tst_split_c("Split the C-string Obba-Dobba may be splitted test");
-    tst_split("Split the C-string Obba-Dobba may be splitted test");
+    test_split("Split the C-string with function splitter Yoga-Doga Tra-ta-ta splitter test by call the procedure");
     std::clog << "===================" << std::endl;
-    tst_split_f("Split the C-string with functional splitter Duba-Yba Cali-Yuga split test by the test");
-    std::clog << "===================" << std::endl;
-    tst_split_ff("Split the C-string with function splitter Yoga-Doga Tra-ta-ta splitter test by call the procedure");
+    test_split2("Split the two C-string with function splitter", /*"Oppa-oppa, Амерка-Европа!!!!!!!"*/ "Oppa-oppa, America-Europpa" "Tra-ta-ta splitter test by call the procedure");
     std::clog << "===================" << std::endl;
 
 
