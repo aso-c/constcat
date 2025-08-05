@@ -6,8 +6,8 @@
 // Description : Static concatenation ANSI-style string wuth std::strung_view
 //============================================================================
 
-#ifndef __CONCAT_HPP__
-#define __CONCAT_HPP__
+#ifndef __CONSTCAT_HPP__
+#define __CONSTCAT_HPP__
 
 
 constexpr /*consteval*/ std::array<char, 4>  generate_str(const char c1, const char c2, const char c3)
@@ -185,12 +185,12 @@ public:
 //	- TItem - type of the items of the array
 //	- TOut	- return type of the 'exec' procedure
 //
-template <typename TItem, /*typename TOut,*/ class TActor>
+template <typename TItem, class TActor>
 class splitter_f
 {
 public:
 
-	template <size_t size, typename TOut /*= std::array<TItem, size>*/, /*class TActor,*/ typename ... Its>
+	template <size_t size, typename TOut = std::array<TItem, size>, typename ... Its>
 	static constexpr TOut yeld(TActor* actor, const TItem (&buf)[size], Its ...its)
 	{
 		std::clog << "Processing item " << size-1 << ": '" << (buf[size-1]? buf[size-1]: '.') << '\'' <<  std::endl;
@@ -200,7 +200,6 @@ public:
 //			return {its..., '\0'};
 			return actor->gather/*<TItem, Its... >*/(buf[0], its...);
 	};
-
 //	template <typename ... Its>
 //	TOut gather(Its...);
 
@@ -208,11 +207,59 @@ public:
 
 /// The splitter test class
 template <std::size_t len>
-class tst_split_f/*: public splitter<char, int, tst_split<len>>*/
+class tst_split_f
 {
 public:
 	constexpr tst_split_f(const char (&instr)[len]):
-		n(splitter_f<char, tst_split_f<len>/*std::decay<decltype(*this)>::type*//*std::decay_t<decltype(*this)>*/>::template yeld<len, int> (this, instr))
+		n(splitter_f<char, std::decay_t<decltype(*this)>>::template yeld<len, int> (this, instr))
+	{};
+
+	template <typename ... Its>
+	int gather(Its ... its) { ((std::clog << "--f_splitter_test-----------" << std::endl) << ... << its) << std::endl;   return 0;};
+
+	int n;
+}; /* tst_split */
+
+//-----------------------------------------------------------------------------------------------------------------------------
+
+//-----------------------------------------------------------------------------------------------------------------------------
+
+//
+// Template function "splitter_f" - split array into individual elements
+// and return object TOut by calling pactor->gather() procedure all splitted items
+//
+// Parameters:
+//	- size - size_t, size of input array
+//	- TItem - type of the items of the array
+//	- TOut	- return type of the 'exec' procedure
+//
+//template <typename TItem, class TActor>
+//class splitter_ff
+//{
+//public:
+
+//template <size_t size, typename TOut = std::array<TItem, size>, typename ... Its>
+	template <class TActor, typename TItem, size_t size, typename TOut = std::array<TItem, size>, typename ... Its>
+	static constexpr TOut splitter_ff(TActor* actor, const TItem (&buf)[size], Its ...its)
+	{
+		std::clog << "Processing item " << size-1 << ": '" << (buf[size-1]? buf[size-1]: '.') << '\'' <<  std::endl;
+		if constexpr (size > 1)
+			return splitter_ff<TActor, TItem, size-1, TOut, Its...>(actor, reinterpret_cast<const TItem (&)[size-1]>(buf), buf[size-1], its...);
+		else
+//			return {its..., '\0'};
+			return actor->gather/*<TItem, Its... >*/(buf[0], its...);
+	}; /*splitter_ff */
+//	TOut gather(Its...);
+
+//}; /*splitter_ff */
+
+/// The splitter test class
+template <std::size_t len>
+class tst_split_ff
+{
+public:
+	constexpr tst_split_ff(const char (&instr)[len]):
+		n(splitter_ff<std::decay_t<decltype(*this)>/*>::, template yeld<*/, char, len, int> (this, instr))
 	{};
 
 	template <typename ... Its>
@@ -262,4 +309,4 @@ inline std::ostream& operator << (std::ostream& out, const std::array<item, size
 
 
 
-#endif	// __CONCAT_HPP__
+#endif	// __CONSTCAT_HPP__

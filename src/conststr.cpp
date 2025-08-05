@@ -13,7 +13,7 @@
 #include <array>
 #include <string_view>
 
-#include "concat.hpp"
+#include "constcat.hpp"
 
 class conststr // conststr is a literal type
 {
@@ -97,6 +97,8 @@ int main()
     tst_split("Split the C-string Obba-Dobba may be splitted test");
     std::clog << "===================" << std::endl;
     tst_split_f("Split the C-string with functional splitter Duba-Yba Cali-Yuga split test by the test");
+    std::clog << "===================" << std::endl;
+    tst_split_ff("Split the C-string with function splitter Yoga-Doga Tra-ta-ta splitter test by call the procedure");
     std::clog << "===================" << std::endl;
 
 
