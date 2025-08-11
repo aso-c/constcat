@@ -74,31 +74,16 @@ struct prnstr
 
 int main()
 {
-#if 0
-    std::cout << "The number of lowercase letters in \"Hello, world!\" is ";
-    constN<count_lower("Hello, world!")>(); // the string literal is implicitly
-                                            // converted to conststr
-
-    //prnstr<"Check the Test String"> prn;
-    conststr jet("Jet Fighter");
-
-    std::cout << "Const str is a: \"" << jet << "\"" << std::endl;
-#endif
-
-#if 0
-    const std::string_view tst(generate_str('a', 'b', 'c').data());
-
-    std::cout << "Generated string is: " << '"' << tst.data() << '"' << std::endl;
-    std::cout << "Regenerated string is: " << '"' << regen<9>("ABBA test").data() << '"' << std::endl;
-    std::cout << "Regenerated C-string is: " << '"' << regen_c("C-string ABBA test").data() << '"' << std::endl;
-    std::cout << "Regenerate with class on C-string: " << '"' << regen_clss<29>::operator()<29>("Class on C-string BUBBA test") << '"'
-    		  << std::endl << std::flush;
-#endif
     std::clog << "Test the splitter class with C-string:" << std::endl
     		  << "===================" << std::endl;
-    test_split("Split the C-string with function splitter Yoga-Doga Tra-ta-ta splitter test by call the procedure");
+//    test_split("Split the C-string with function splitter Yoga-Doga Tra-ta-ta splitter test by call the procedure");
+//    std::clog << "===================" << std::endl;
+    test_split2("Split the two C-string with function splitter", /*"Oppa-oppa, Амерка-Европа!!!!!!!"*/ "Oppa-oppa, America-Europpa" " " "Tra-ta-ta splitter test by call the procedure");
     std::clog << "===================" << std::endl;
-    test_split2("Split the two C-string with function splitter", /*"Oppa-oppa, Амерка-Европа!!!!!!!"*/ "Oppa-oppa, America-Europpa" "Tra-ta-ta splitter test by call the procedure");
+//    test_split_tf("Test the splitter of the C-string with template function action Yoga-Doga Tra-ta-ta splitter testing by call template action procedure");
+    test_split_a("Test the splitter of the C-string with template functor action object Yoga-Doga Tra-ta-ta splitter testing by call the callable functor w/operator ()");
+    test_split_nm_lmbd("Test the splitter of the C-string with named lambda action Yoga-Doga Tra-la-la splitter_a testing");
+    test_split_anon_lmbd("Test the splitter of the C-string with anonymous lambda call Buda-Uda Ra-ra-ra splitter_a testing");
     std::clog << "===================" << std::endl;
 
 
