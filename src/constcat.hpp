@@ -142,21 +142,9 @@ constexpr auto split2(Act&& action, const TItem1 (&buf1)[size1], const TItem2 (&
 }; /*split2 */
 #endif
 
-//template <typename Item, std::size_t sz>
-//typedef Item Buf[sz];
-
-template <typename Item, std::size_t sz>
-using Buff = Item[sz];
 
 
-template <std::size_t sz, typename Item>
-constexpr std::ostream& prntit(std::ostream& out, Item (&buf)[sz])
-{
-    out << " \"" << buf << "\": sizeof: " << sizeof(buf) << " ,";
-    return out;
-};
-
-
+/// Envelope for check the sizeof of the passed string buffers
 template <std::size_t sz, typename Item>
 struct testprn
 {
@@ -169,23 +157,61 @@ struct testprn
     Item (&buf)[sz];
 };
 
+/// operator <<() for print to ostream oject of the class testprn
 template <std::size_t sz, typename Item>
 std::ostream& operator << (std::ostream& out, const testprn<sz, Item> &tprn) {
     return tprn(out);
 }
 
-template </*class Act,*/ /*typename... Its,*/ /*std::size_t... szs*//*, char... Bufs[szs]*/typename... Bufs>
-constexpr auto chainsplit(/*Act act,*/ const /*Its*//* char (&bufs)[szs...]...*//*char (&bufs)[szs]*/Bufs&... bufs)
-{
-    (std::clog << ... << bufs) << std::endl;
-    (std::clog << ... << testprn(bufs)) << std::endl << std::endl;
-    //[[maybe_unused]]
-    int volatile stub[] = {((std::clog << "===>>[ Check with spacing stub ]: ") << bufs << " " << "sizeof: "<< sizeof(bufs), 0) ...};
 
-    int i = stub[0];
-    i++;
-    return 0;
+
+
+//!
+// Template function "chainsplit" - operating with any string buffers
+// and call splitter every buffer, that is passed into
+// Terminal version with one string buffer for call a splitter
+//
+// Template parameters:
+// @tparam Act	  - type of the action executor, functor with template <...> operator()
+// @tparam Buf    - string buffer, passed to procedure
+//
+// Parameters:
+// @param[in]	act   - type Act action parameter, that called at final string buffers parsing
+// @param[in]   buf   - reference to const array of the any size
+template <class Act, typename Buf>
+constexpr auto chainsplit(Act act, const Buf& buf)
+{
+//    (std::clog << ... << testprn(bufs)) << std::endl << std::endl;
+    std::clog << testprn(buf) /*<< std::endl*/;
+//    return 0;
+    return splitter(act,buf);
 }; /* template <> chainsplit() */
+
+
+//!
+// Template function "chainsplit" - operating with set of any string buffers
+// and call splitter every buffer, that is passed into this procedure
+// Initial & intermediate version with set of some buffers
+//
+// Template parameters:
+// @tparam Act	  - type of the action executor, functor with template <...> operator()
+// @tparam Bufs   - variadic pack of type parameters, that passed to procedure
+//
+// Parameters:
+// @param[in]	act   - type Act action parameter, that called at final string buffers parsing
+// @param[in]   buf   - reference to const array of the any size
+// @param[in]   bufs  - variadic pack of reference to const arrays of the any sizes, that must be processed
+template <class Act, typename Buf, typename... Bufs>
+constexpr auto chainsplit(Act&& act,  const Buf& buf, const Bufs&... bufs)
+{
+//    (std::clog << ... << testprn(bufs)) << std::endl << std::endl;
+    std::clog << testprn(buf) /*<< std::endl*/;
+    return chainsplit([act, &buf]<typename... Its>(Its... its) constexpr -> auto { return splitter(act, buf, its...);}, bufs...);
+}; /* template <> chainsplit() */
+
+
+
+
 
 
 /// The splitter_a test class w/functor object

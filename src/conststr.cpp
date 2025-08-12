@@ -86,9 +86,13 @@ int main()
     std::clog << "Check the chainsplit, preliminary:" << std::endl;
 
 	char name[] = u8"Абсолютный";
-	const char idt[] = u8"Ultra"/*"Реверсивный"*/;
-    chainsplit("ABC", name, "cde", idt, "offset sector", "Tracer");
-    std::clog << "===================" << std::endl;
+	const char idt[] = u8"Ultra";
+	const /*char8_t*/ char reverse[] = "Реверсивный";
+    chainsplit([]<typename... Its>(Its ... its) constexpr {
+		    (std::clog << "[ chainsplitter action test ] : " << ... << its);
+		    return 0;},
+			"ABC", name, "cde", idt, "offset sector", reverse, "Tracer");
+    std::clog << std::endl << "===================" << std::endl;
 
 
     return 0;
