@@ -3,7 +3,8 @@
 // Author      : Andrey Solomatov
 // Version     :
 // Copyright   : Copyright (c) aso by 20.01.25.
-// Description : Hello World in C++, Ansi-style
+// Last Updated:		      12.08.25.
+// Description : Development static constexpr string concatenation
 //============================================================================
 
 #include <cstddef>
@@ -76,14 +77,17 @@ int main()
 {
     std::clog << "Test the splitter class with C-string:" << std::endl
     		  << "===================" << std::endl;
-//    test_split("Split the C-string with function splitter Yoga-Doga Tra-ta-ta splitter test by call the procedure");
-//    std::clog << "===================" << std::endl;
-    test_split2("Split the two C-string with function splitter", /*"Oppa-oppa, Амерка-Европа!!!!!!!"*/ "Oppa-oppa, America-Europpa" " " "Tra-ta-ta splitter test by call the procedure");
+//    test_split2("Split the two C-string with function splitter", /*"Oppa-oppa, Амерка-Европа!!!!!!!"*/ "Oppa-oppa, America-Europpa" " " "Tra-ta-ta splitter test by call the procedure");
     std::clog << "===================" << std::endl;
-//    test_split_tf("Test the splitter of the C-string with template function action Yoga-Doga Tra-ta-ta splitter testing by call template action procedure");
     test_split_a("Test the splitter of the C-string with template functor action object Yoga-Doga Tra-ta-ta splitter testing by call the callable functor w/operator ()");
     test_split_nm_lmbd("Test the splitter of the C-string with named lambda action Yoga-Doga Tra-la-la splitter_a testing");
     test_split_anon_lmbd("Test the splitter of the C-string with anonymous lambda call Buda-Uda Ra-ra-ra splitter_a testing");
+    std::clog << "===================" << std::endl;
+    std::clog << "Check the chainsplit, preliminary:" << std::endl;
+
+	char name[] = u8"Абсолютный";
+	const char idt[] = u8"Ultra"/*"Реверсивный"*/;
+    chainsplit("ABC", name, "cde", idt, "offset sector", "Tracer");
     std::clog << "===================" << std::endl;
 
 
