@@ -1,8 +1,8 @@
 //============================================================================
 // Name        : concat.hpp
 // Author      : Andrey Solomatov
-// Version     : 0.4
-// Copyright   : Copyright (c) aso by 12.08.25.
+// Version     : 0.5
+// Copyright   : Copyright (c) aso by 14.08.25.
 // Description : Static concatenation ANSI-style string with std::array/std::string_view
 //============================================================================
 
@@ -128,21 +128,6 @@ constexpr auto splitter(Act&& action, const TItem (&buf)[size], Its ...its)
 
 
 
-#if 0
-template <class Act, typename TItem1, typename TItem2, std::size_t size1, std::size_t size2, typename ... Its>
-constexpr auto split2(Act&& action, const TItem1 (&buf1)[size1], const TItem2 (&buf2)[size2], Its ...its)
-{
-    std::clog << "Processing item " << size-1 << ": '" << (buf[size-1]? buf[size-1]: '.') << '\'' <<  std::endl;
-    if constexpr (size > 1)
-	return splitter<Act, TItem, size-1, Its...>(std::forward<Act>(action), reinterpret_cast<const TItem (&)[size-1]>(buf), buf[size-1], its...);
-    else
-//	return {its..., '\0'};
-//	return actor->gather(buf[0], its...);
-	return action(buf[0], its...);
-}; /*split2 */
-#endif
-
-
 
 /// Envelope for check the sizeof of the passed string buffers
 template <std::size_t sz, typename Item>
@@ -181,9 +166,7 @@ std::ostream& operator << (std::ostream& out, const testprn<sz, Item> &tprn) {
 template <class Act, typename Buf>
 constexpr auto chainsplit(Act act, const Buf& buf)
 {
-//    (std::clog << ... << testprn(bufs)) << std::endl << std::endl;
     std::clog << testprn(buf) /*<< std::endl*/;
-//    return 0;
     return splitter(act,buf);
 }; /* template <> chainsplit() */
 
@@ -204,10 +187,55 @@ constexpr auto chainsplit(Act act, const Buf& buf)
 template <class Act, typename Buf, typename... Bufs>
 constexpr auto chainsplit(Act&& act,  const Buf& buf, const Bufs&... bufs)
 {
-//    (std::clog << ... << testprn(bufs)) << std::endl << std::endl;
     std::clog << testprn(buf) /*<< std::endl*/;
-    return chainsplit([act, &buf]<typename... Its>(Its... its) constexpr -> auto { return splitter(act, buf, its...);}, bufs...);
+    return chainsplit([act, &buf]<typename... Its>(Its... its) constexpr /*-> auto*/ {
+	return splitter(act, buf, its...);}, bufs...);
 }; /* template <> chainsplit() */
+
+
+
+//!
+// Template function "stringsplit" - operating with set of any string buffers,
+// and drop trail terminator of the string for all buffers, exclude last one,
+// and invoke splitter for every buffer, that is passed into this procedure
+// Terminal version with one string buffer: pass to a chainsplitter()
+//
+// Template parameters:
+// @tparam Act	  - type of the action executor, functor with template <...> operator()
+// @tparam Buf    - string buffer, passed to procedure
+//
+// Parameters:
+// @param[in]	act   - type Act action parameter, that called at final string buffers parsing
+// @param[in]   buf   - reference to const array of the any size
+template <class Act, typename Buf>
+constexpr auto strsplit(Act act, const Buf& buf)
+{
+    return chainsplit(act,buf);
+}; /* template <> stringsplit() */
+
+
+//!
+// Template function "stringsplit" - operating with set of any string buffers,
+// and drop trail terminator of the string for all buffers, exclude last one,
+// and invoke splitter for every buffer, that is passed into this procedure
+// Initial & intermediate version with set of some buffers
+//
+// Template parameters:
+// @tparam Act	  - type of the action executor, functor with template <...> operator()
+// @tparam Bufs   - variadic pack of type parameters, that passed to procedure
+//
+// Parameters:
+// @param[in]	act   - type Act action parameter, that called at final string buffers parsing
+// @param[in]   buf   - reference to const array of the any size
+// @param[in]   bufs  - variadic pack of reference to const arrays of the any sizes, that must be processed
+template <class Act, typename Buf, typename... Bufs>
+constexpr auto strsplit(Act&& act,  const Buf& buf, const Bufs&... bufs)
+{
+    std::clog << testprn(buf) /*<< std::endl*/;
+    return strsplit([act, &buf]<typename... Its>(Its... its) constexpr {
+							// drop the trailing terminator of the buf
+	return splitter(act, reinterpret_cast<const /*TItem*/ std::decay_t<decltype(*buf)> (&)[/*size-1*/sizeof(buf)-1]>(buf)/*buf*/, its...);}, bufs...);
+}; /* template <> stringsplit() */
 
 
 

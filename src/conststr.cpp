@@ -3,7 +3,7 @@
 // Author      : Andrey Solomatov
 // Version     :
 // Copyright   : Copyright (c) aso by 20.01.25.
-// Last Updated:		      12.08.25.
+// Last Updated:		      14.08.25.
 // Description : Development static constexpr string concatenation
 //============================================================================
 
@@ -87,11 +87,17 @@ int main()
 
 	char name[] = u8"Абсолютный";
 	const char idt[] = u8"Ultra";
-	const /*char8_t*/ char reverse[] = "Реверсивный";
     chainsplit([]<typename... Its>(Its ... its) constexpr {
 		    (std::clog << "[ chainsplitter action test ] : " << ... << its);
 		    return 0;},
-			"ABC", name, "cde", idt, "offset sector", reverse, "Tracer");
+			"ABC", name, "cde", idt, "offset sector", "Tracer");
+    std::clog << std::endl << "===================" << std::endl;
+
+	const /*char8_t*/ char reverse[] = "Реверсивный";
+    strsplit([]<typename... Its>(Its ... its) constexpr {
+		    (std::clog << "[ string splitter action test ] ==> " << ... << its);
+		    return 0;},
+			"ABC", ": ", name, "; ", "cde", " - ", idt, "; ", "offset sector", " - ", "is ", reverse, " -- ", "Tracer", "!!!");
     std::clog << std::endl << "===================" << std::endl;
 
 
