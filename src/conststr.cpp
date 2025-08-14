@@ -100,6 +100,10 @@ int main()
 			"ABC", ": ", name, "; ", "cde", " - ", idt, "; ", "offset sector", " - ", "is ", reverse, " -- ", "Tracer", "!!!");
     std::clog << std::endl << "===================" << std::endl;
 
+    auto result_arr = constcat("ABC", ": ", name, "; ", "catenated", " - ", idt, "; ", "array set", " - ", "is ", reverse, " -- ", "Tracer", "!!!");
+
+    std::clog << "[ static compile-time concatenation the const string test ] ==> " << result_arr.data() << std::endl;
+
 
     return 0;
 
