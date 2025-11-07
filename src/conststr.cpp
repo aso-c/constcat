@@ -14,7 +14,7 @@
 #include <array>
 #include <string_view>
 
-#include "constcat.hpp"
+#include "aarrays.hpp"
 
 class conststr // conststr is a literal type
 {
@@ -131,6 +131,7 @@ public:
 
 
 
+
 int main()
 {
 #if 0
@@ -169,7 +170,7 @@ int main()
     std::clog << "Check the constcat:" << std::endl;
     std::clog << "to std::array<>:" << std::endl;
 
-    auto result_arr = aso::str::constcat("ABC", ": ", name, "; ", "catenated", " - ", idt, "; ", "array set", " - ", "is ", reverse, " -- ", "Tracer", "!!!");
+    /*auto*/ std::array result_arr = aso::str::constcat("ABC", ": ", name, "; ", "catenated", " - ", idt, "; ", "array set", " - ", "is ", reverse, " -- ", "Tracer", "!!!");
 
     std::clog << "[ static compile-time concatenation the const string test to std::array<> ] ==> " << result_arr.data() << std::endl;
 
@@ -177,12 +178,21 @@ int main()
     std::string_view result_str = aso::str::constcat("Its ", "a ", "std::string_view: ", name, " - ", "catenated", " - ", "from ", idt, " - ", "array set", " - ", "is ", "Tracer", "!!!").data();
 
     std::clog << "[ static compile-time concatenation the const string test with std::array ] ==> " << result_str << std::endl;
-    std::array arr_prefix = "The std::array string";
 
-    std::clog << arr_prefix << std::endl;
+    std::clog << "[ static compile-time concatenation the const string test to std::string_view ] ==> XXX" << result_str << std::endl;
+
+//	const std::array arr_prefix = std::to_array("The std::array string");
+//	const std::array arr_prefix = {'T','h','e',' ','s','t','d',':',':','a','r','r','a','y',' ','s','t','r','i','n','g'};
+//	std::array arr_prefix = aso::str::constcat("The std::array string");
+	std::array arr_prefix = aso::constcat("The std::array string");
+
+    std::clog << "[ The std::array output ] ==> " << arr_prefix + " Testing operator +(const char(&)[])" << std::endl;
+//    std::clog << "[ The std::array output ] ==> " << arr_prefix + ": Testing the operator +(const char (&)[])" << std::endl;
+
 
 #if 0
-    std::clog << "[ static compile-time concatenation the const string test to std::string_view ] ==> " << result_str << std::endl;
+    std::clog << "[ static compile-time concatenation const string with operator + ] ==> " << std::string_view("abc") + std::string_view("CDEt Getter") << std::endl;
+#endif
 
     std::clog << "[ static compile-time concatenation const string with operator + ] ==> " << std::string_view("abc") + std::string_view("CDEt Getter") << std::endl;
 #endif

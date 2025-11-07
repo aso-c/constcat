@@ -12,7 +12,8 @@
 
 namespace aso
 {
-
+    namespace arr
+    {
     //!
     // Template function "splitter" - split array into individual elements
     // and return object from callint the action template procedure with all splitted items
@@ -109,7 +110,6 @@ std::ostream& operator << (std::ostream& out, const testprn<sz, Item> &tprn) {
     }; /* template <> chainsplit() */
 
 
-#
     //!
     // Template function "constcat" - create std::array object from the passed buffers of any type
     //		(buffer must be is not a string!!!)
@@ -128,6 +128,7 @@ std::ostream& operator << (std::ostream& out, const testprn<sz, Item> &tprn) {
 						bufs...);
     }; /* template <> aso::constcat() */
 
+    }; /* namespace aso::arr */
 
 
     namespace str
@@ -204,18 +205,20 @@ std::ostream& operator << (std::ostream& out, const testprn<sz, Item> &tprn) {
 }; /* namespace aso */
 
 
-// template <std::size_t size>
-// std::array(const char[size]) -> std::array<const char, size>;
-
-
-//template </*typename Item,*/ std::size_t sz1, std::size_t sz2>
+template </*typename Item,*/ std::size_t sz1, std::size_t sz2>
 //constexpr std::array<const Item, sz1 + sz2 - 1> operator +(const Item (&str1)[sz1], const Item (&str2)[sz2])
 //constexpr std::array<const char, sz1 + sz2 - 1> operator +(/*const char (&*/std::string_view str1/*)[sz1]*/, /*const char (&*/std::string_view str2/*)[sz2]*/)
+constexpr std::array<const char, sz1 + sz2 - 1> operator +(const std::array<const char, sz1> arr1, const char(&buf2)[sz2])
+{
+    return aso::str::constcat(arr1.data(), buf2);
+};
+
+#if 0
 constexpr std::array<const char, 2> operator +(std::string_view str1, std::string_view str2)
 {
     return {str1[0], str2[0]}/*aso::str::constcat(str1, str2)*/;
-}; /* template <Item, sz1, sz2> std::array<Item, sz1 + sz2 - 1> operator +(&str1, &str2)
- */
+}; /* template <Item, sz1, sz2> std::array<Item, sz1 + sz2 - 1> operator +(&str1, &str2) */
+#endif
 
 
 
