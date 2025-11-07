@@ -2,8 +2,8 @@
 // Name        : conststr.cpp
 // Author      : Andrey Solomatov
 // Version     :
-// Copyright   : Copyright (c) aso by 20.01.25.
-// Last Updated:		      14.08.25.
+// Copyright   : Copyright (c) aso by 07.11.25.
+// Last Updated:		      07.11.25.
 // Description : Development static constexpr string concatenation
 //============================================================================
 
@@ -184,16 +184,14 @@ int main()
 //	const std::array arr_prefix = std::to_array("The std::array string");
 //	const std::array arr_prefix = {'T','h','e',' ','s','t','d',':',':','a','r','r','a','y',' ','s','t','r','i','n','g'};
 //	std::array arr_prefix = aso::str::constcat("The std::array string");
-	std::array arr_prefix = aso::constcat("The std::array string");
+//	std::array arr_prefix = aso::arr::common("The std::array string");
+	std::array arr_prefix = aso::arr::gen("The std::array string");
 
     std::clog << "[ The std::array output ] ==> " << arr_prefix + " Testing operator +(const char(&)[])" << std::endl;
 //    std::clog << "[ The std::array output ] ==> " << arr_prefix + ": Testing the operator +(const char (&)[])" << std::endl;
 
 
 #if 0
-    std::clog << "[ static compile-time concatenation const string with operator + ] ==> " << std::string_view("abc") + std::string_view("CDEt Getter") << std::endl;
-#endif
-
     std::clog << "[ static compile-time concatenation const string with operator + ] ==> " << std::string_view("abc") + std::string_view("CDEt Getter") << std::endl;
 #endif
 

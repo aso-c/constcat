@@ -1,13 +1,15 @@
 //============================================================================
 // Name        : concat.hpp
 // Author      : Andrey Solomatov
-// Version     : 0.7.1
-// Copyright   : Copyright (c) aso by 01.10.25.
+// Version     : 0.8.0x
+// Copyright   : Copyright (c) aso by 07.11.25.
 // Description : Static concatenation ANSI-style string and generate std::array for std::string_view
+//		    Recursive implementation
+//		    Devel stopped (temporarily?)
 //============================================================================
 
-#ifndef __CONSTCAT_HPP__
-#define __CONSTCAT_HPP__
+#ifndef __AARRAYS_HPP__
+#define __AARRAYS_HPP__
 
 
 namespace aso
@@ -110,23 +112,41 @@ std::ostream& operator << (std::ostream& out, const testprn<sz, Item> &tprn) {
     }; /* template <> chainsplit() */
 
 
-    //!
-    // Template function "constcat" - create std::array object from the passed buffers of any type
-    //		(buffer must be is not a string!!!)
-    //
-    // Template parameters:
-    // @tparam Bufs	  - variadic template types pack for the passed string buffers
-    //
-    // Parameters:
-    // @param[in]   bufs  - variadic parameters pack of reference to set of the const C-style string buffers,
-    //		that must be concatenated
-    template <typename... Bufs>
-    constexpr auto constcat(const Bufs&... bufs)
-    {
-	return chainsplit([]<typename... Its>(Its... its) constexpr -> std::array<std::common_type_t<Its...>, sizeof...(Its)> {
-				return { its...};},
-						bufs...);
-    }; /* template <> aso::constcat() */
+	//!
+	// Template function "constcat" - create std::array object from the passed buffers of any type
+	//		(buffer must be is not a string!!!)
+	//
+	// Template parameters:
+	// @tparam Bufs	  - variadic template types pack for the passed string buffers
+	//
+	// Parameters:
+	// @param[in]   bufs  - variadic parameters pack of reference to set of the const C-style string buffers,
+	//		that must be concatenated
+	template <typename... Bufs>
+	constexpr auto common(const Bufs&... bufs)
+	{
+	    return chainsplit([]<typename... Its>(Its... its) constexpr -> std::array<std::common_type_t<Its...>, sizeof...(Its)> {
+				    return { its...};},
+							bufs...);
+	}; /* template <> aso::constcat() */
+
+	//!
+	// Template function "aso::arr::gen" - create const std::array object from the passed buffers of single type
+	//		and any sizes (buffer must be is not a string!!!)
+	//
+	// Template parameters:
+	// @tparam Bufs	  - variadic template types pack for the passed string buffers
+	//
+	// Parameters:
+	// @param[in]   bufs  - variadic parameters pack of reference to set of the const C-style string buffers,
+	//		that must be concatenated
+	template <typename Item, std::size_t sz, std::size_t... szs>
+	constexpr auto gen(Item (&buf)[sz], Item (&...bufs)[szs])
+	{
+	    return chainsplit([]<typename... Its>(Its... its) constexpr -> std::array<Item, sizeof...(its)> {
+				    return { its...};},
+							buf, bufs...);
+	}; /* template <> aso::gen() */
 
     }; /* namespace aso::arr */
 
@@ -151,7 +171,7 @@ std::ostream& operator << (std::ostream& out, const testprn<sz, Item> &tprn) {
 	template <class Act, typename Item, std::size_t sz>
 	constexpr auto split(Act act, const Item (&buf)[sz])
 	{
-	    return chainsplit(act,buf);
+	    return arr::chainsplit(act, buf);
 	}; /* template <> aso::str::split() */
 
 
@@ -177,7 +197,7 @@ std::ostream& operator << (std::ostream& out, const testprn<sz, Item> &tprn) {
 //	    std::clog << testprn(buf);
 	    /// drop the trailing string terminator of the buf
 	    return split([act, &buf]<typename... Its>(Its... its) constexpr
-				{ return splitter(act, reinterpret_cast<const Item (&)[sz-1]>(buf), its...);},
+				{ return arr::splitter(act, reinterpret_cast<const Item (&)[sz-1]>(buf), its...);},
 								bufs...);
 	}; /* template <> aso::str::split() */
 
@@ -210,7 +230,7 @@ template </*typename Item,*/ std::size_t sz1, std::size_t sz2>
 //constexpr std::array<const char, sz1 + sz2 - 1> operator +(/*const char (&*/std::string_view str1/*)[sz1]*/, /*const char (&*/std::string_view str2/*)[sz2]*/)
 constexpr std::array<const char, sz1 + sz2 - 1> operator +(const std::array<const char, sz1> arr1, const char(&buf2)[sz2])
 {
-    return aso::str::constcat(arr1.data(), buf2);
+    return aso::str::constcat<const char(&)[sz1], const char(&)[sz2]>(arr1.data(), buf2);
 };
 
 #if 0
@@ -229,4 +249,4 @@ inline std::ostream& operator << (std::ostream& out, const std::array<item, size
 };
 
 
-#endif	// __CONSTCAT_HPP__
+#endif	// __AARRAYS_HPP__
