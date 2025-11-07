@@ -126,6 +126,10 @@ public:
 
 
 
+    template <std::size_t size>
+    std::array(const char[size]) -> std::array<const char, size>;
+
+
 
 int main()
 {
@@ -172,7 +176,16 @@ int main()
     std::clog << "to std::string_view:" << std::endl;
     std::string_view result_str = aso::str::constcat("Its ", "a ", "std::string_view: ", name, " - ", "catenated", " - ", "from ", idt, " - ", "array set", " - ", "is ", "Tracer", "!!!").data();
 
+    std::clog << "[ static compile-time concatenation the const string test with std::array ] ==> " << result_str << std::endl;
+    std::array arr_prefix = "The std::array string";
+
+    std::clog << arr_prefix << std::endl;
+
+#if 0
     std::clog << "[ static compile-time concatenation the const string test to std::string_view ] ==> " << result_str << std::endl;
+
+    std::clog << "[ static compile-time concatenation const string with operator + ] ==> " << std::string_view("abc") + std::string_view("CDEt Getter") << std::endl;
+#endif
 
     return 0;
 

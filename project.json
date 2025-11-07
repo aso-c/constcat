@@ -1,0 +1,12 @@
+{
+  "name": "constcat",
+  "description": "'Statically' constexpr concatenation string literals and/or (potentially) C-like string or other similar buffer objects in compile time.",
+    "version": "0.7.1",
+  "private": false
+//  "scripts": {
+//    "start": ""
+//  },
+//  "dependencies": {
+//    "test": "0.0.1"
+//  }
+}

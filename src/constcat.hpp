@@ -201,10 +201,21 @@ std::ostream& operator << (std::ostream& out, const testprn<sz, Item> &tprn) {
 
     }; /* namespace aso::str */
 
-
 }; /* namespace aso */
 
 
+// template <std::size_t size>
+// std::array(const char[size]) -> std::array<const char, size>;
+
+
+//template </*typename Item,*/ std::size_t sz1, std::size_t sz2>
+//constexpr std::array<const Item, sz1 + sz2 - 1> operator +(const Item (&str1)[sz1], const Item (&str2)[sz2])
+//constexpr std::array<const char, sz1 + sz2 - 1> operator +(/*const char (&*/std::string_view str1/*)[sz1]*/, /*const char (&*/std::string_view str2/*)[sz2]*/)
+constexpr std::array<const char, 2> operator +(std::string_view str1, std::string_view str2)
+{
+    return {str1[0], str2[0]}/*aso::str::constcat(str1, str2)*/;
+}; /* template <Item, sz1, sz2> std::array<Item, sz1 + sz2 - 1> operator +(&str1, &str2)
+ */
 
 
 
@@ -213,64 +224,6 @@ template <typename item, std::size_t size>
 inline std::ostream& operator << (std::ostream& out, const std::array<item, size> &arr) {
 	return out << arr.data();
 };
-
-
-
-
-
-
-
-#if 0
-/// The splitter_a test class w/functor object
-template <std::size_t len>
-class test_split_a
-{
-public:
-
-    constexpr test_split_a(const char (&instr)[len]):
-	n(splitter(*this, instr))
-    {};
-
-    template <typename... Its>
-    int constexpr operator()(Its ... its) { ((std::clog << "--template_action_splitter_test-----------" << std::endl) << ... << its) << std::endl;   return 0;};
-
-    int n;
-}; /* test_split_a */
-
-
-
-/// The splitter_a test class w/named lambda
-template <std::size_t len>
-class test_split_nm_lmbd
-{
-public:
-
-    constexpr test_split_nm_lmbd(const char (&instr)[len]):
-	n(splitter(got, instr))
-    {};
-
-    static constexpr auto got = []<typename... Its>(Its... its) constexpr -> int { ((std::clog << "--[ This is a named lambda call] -----------" << std::endl) << ... << its) << std::endl; return 0;};
-
-    int n;
-}; /* test_split_nm_lmbda */
-
-
-/// The splitter_a test class w/unnamed (anonymous) lambda
-template <std::size_t len>
-class test_split_anon_lmbd
-{
-public:
-
-    constexpr test_split_anon_lmbd(const char (&instr)[len]):
-	n(splitter([]<typename... Its>(Its... its) constexpr -> int { ((std::clog << "--[ This is a anonymous lambda call] -----------" << std::endl) << ... << its) << std::endl; return 0;},
-		instr))
-    {};
-
-    int n;
-}; /* test_split_nm_lmbda */
-#endif
-
-
 
 
 #endif	// __CONSTCAT_HPP__

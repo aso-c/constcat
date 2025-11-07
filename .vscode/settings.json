@@ -1,0 +1,11 @@
+{
+        "C_Cpp.codeAnalysis.clangTidy.useBuildPath": true,
+        "editor.tabSize": 8,
+        "editor.tabCompletion": "on",
+        "editor.tabFocusMode": true,
+        "editor.autoIndentOnPaste": true,
+        "editor.indentSize": 4,
+        "C_Cpp.inlayHints.autoDeclarationTypes.showOnLeft": true,
+        "editor.wrappingIndent": "deepIndent"
+//        "makefile.makefilePath": "./Makefile"
+}

@@ -1,0 +1,12 @@
+{
+  "name": "constcat",
+  "description": "static concatenation of the const string at the compile time",
+  "version": "0.7.1",
+  "private": false
+//  "scripts": {
+//    "start": ""
+//  },
+//  "dependencies": {
+//    "test": "0.0.1"
+//  }
+}

@@ -1,8 +1,8 @@
 # We'll use defaults from the LLVM style, but with some modifications so that it's close to the CDT K&R style.
 BasedOnStyle: LLVM
-UseTab: Always
+UseTab: ForContinuationAndIndentation
 IndentWidth: 4
-TabWidth: 4
+TabWidth: 8
 PackConstructorInitializers: NextLineOnly
 BreakConstructorInitializers: AfterColon
 IndentAccessModifiers: false
