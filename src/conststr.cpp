@@ -185,9 +185,9 @@ int main()
 //	const std::array arr_prefix = {'T','h','e',' ','s','t','d',':',':','a','r','r','a','y',' ','s','t','r','i','n','g'};
 //	std::array arr_prefix = aso::str::constcat("The std::array string");
 //	std::array arr_prefix = aso::arr::common("The std::array string");
-	std::array arr_prefix = aso::arr::gen("The std::array string");
+	std::array arr_prefix = aso::arr::gen("The std::array string -> [prefix]");
 
-    std::clog << "[ The std::array output ] ==> " << arr_prefix + " Testing operator +(const char(&)[])" << std::endl;
+    std::clog << "[ The std::array output ] ==> " << arr_prefix /*+ " Testing operator +(const char(&)[])"*/ << std::endl;
 //    std::clog << "[ The std::array output ] ==> " << arr_prefix + ": Testing the operator +(const char (&)[])" << std::endl;
 
 
