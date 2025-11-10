@@ -1,7 +1,7 @@
 //============================================================================
 // Name        : concat.hpp
 // Author      : Andrey Solomatov
-// Version     : 0.8.0.2
+// Version     : 0.8.0.3
 // Copyright   : Copyright (c) aso by 07.11.25.
 // Description : Static concatenation ANSI-style string and generate std::array for std::string_view
 //		    Sequence array expand implementation.
@@ -152,21 +152,21 @@ std::ostream& operator << (std::ostream& out, const testprn<sz, Item> &tprn) {
 	namespace detail
 	{
 	    // Non-constant value sequencer
-	    template<class TIt, std::size_t N, std::size_t... szs>
-	    constexpr std::array<std::remove_cv_t<TIt>, N>
-	        sequencer(TIt (&a)[N], std::index_sequence<szs...>)
+	    template<class TIt, std::size_t... idxs>
+	    constexpr std::array<std::remove_cv_t<TIt>, sizeof...(idxs)>
+	        sequencer(TIt (&a)[sizeof...(idxs)], std::index_sequence<idxs...>)
 	    {
-	        return {{a[szs]...}};
+	        return {{a[idxs]...}};
 	    }; /* sequencer() */
 
 	    // Constant-value sequencer
-	    template<class TIt, std::size_t sz, std::size_t... szs>
-	    constexpr std::array<TIt, sz>
-	        csequencer(TIt (&a)[sz], std::index_sequence<szs...>)
+	    template<class TIt, std::size_t... idxs>
+	    constexpr std::array<TIt, sizeof...(idxs)>
+	        csequencer(TIt (&a)[sizeof...(idxs)], std::index_sequence<idxs...>)
 	    {
-	        return {{a[szs]...}};
+	        return {{a[idxs]...}};
 	    }; /* csequencer() */
-	}
+	};
 
 	template<typename TItem, std::size_t N>
 	constexpr std::array<TItem, N> gen(TItem (&buf)[N])
