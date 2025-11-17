@@ -1,8 +1,8 @@
 //============================================================================
 // Name        : concat.hpp
 // Author      : Andrey Solomatov
-// Version     : 0.8.0x
-// Copyright   : Copyright (c) aso by 07.11.25.
+// Version     : 0.8.0.1
+// Copyright   : Copyright (c) aso by 17.11.25.
 // Description : Static concatenation ANSI-style string and generate std::array for std::string_view
 //		    Recursive implementation
 //		    Devel stopped (temporarily?)
@@ -112,6 +112,17 @@ std::ostream& operator << (std::ostream& out, const testprn<sz, Item> &tprn) {
     }; /* template <> chainsplit() */
 
 
+    // Use explicit defined sizes of the bufs
+    template <class Act, typename Item, std::size_t sz, std::size_t... sizes/*typename... Bufs*/>
+    constexpr auto chainsplit2(Act&& act, const Item (&buf)[sz], const Item (&...bufs)[sizes] /*const Bufs&... bufs*/)
+    {
+//	std::clog << testprn(buf);
+	return chainsplit([act, &buf]<typename... Its>(Its... its) constexpr {
+	    return splitter(act, buf, its...);}, bufs...);
+    }; /* template <> chainsplit() */
+
+
+
 	//!
 	// Template function "constcat" - create std::array object from the passed buffers of any type
 	//		(buffer must be is not a string!!!)
@@ -125,7 +136,7 @@ std::ostream& operator << (std::ostream& out, const testprn<sz, Item> &tprn) {
 	template <typename... Bufs>
 	constexpr auto common(const Bufs&... bufs)
 	{
-	    return chainsplit([]<typename... Its>(Its... its) constexpr -> std::array<std::common_type_t<Its...>, sizeof...(Its)> {
+	    return chainsplit([]<typename... Its>(Its... its) constexpr -> const std::array<std::common_type_t<Its...>, sizeof...(Its)> {
 				    return { its...};},
 							bufs...);
 	}; /* template <> aso::constcat() */
@@ -201,6 +212,15 @@ std::ostream& operator << (std::ostream& out, const testprn<sz, Item> &tprn) {
 								bufs...);
 	}; /* template <> aso::str::split() */
 
+	template <class Act, typename Item, std::size_t sz, std::size_t... sizes /*typename... Bufs*/>
+	constexpr auto split2(Act&& act, const Item (&buf)[sz], const  Item (&...bufs)[sizes] /*Bufs&... bufs*/)
+	{
+	    /// drop the trailing string terminator of the buf
+	    return split([act, &buf]<typename... Its>(Its... its) constexpr
+				{ return arr::splitter(act, reinterpret_cast<const Item (&)[sz-1]>(buf), its...);},
+								bufs...);
+	}; /* template <> aso::str::split() */
+
 
 
 
@@ -216,9 +236,18 @@ std::ostream& operator << (std::ostream& out, const testprn<sz, Item> &tprn) {
 	template <typename... Bufs>
 	constexpr auto constcat(const Bufs&... bufs)
 	{
-	    return split([]<typename... Its>(Its... its) constexpr -> std::array<std::common_type_t<Its...>, sizeof...(Its)>
+	    return split2([]<typename... Its>(Its... its) constexpr -> const std::array<std::common_type_t<Its...>, sizeof...(Its)>
 				{ return { its...};}, bufs...);
 	}; /* template <> aso::str::constcat() */
+
+//	template <typename... Bufs>
+	template <typename Item, std::size_t... sizes>
+	constexpr auto constcat2(const /*Bufs&...*/ Item (&...bufs)[sizes])
+	{
+	    return split2([]<typename... Its>(Its... its) constexpr -> const std::array<std::common_type_t<Its...>, sizeof...(Its)>
+				{ return { its...};}, bufs...);
+	}; /* template <> aso::str::constcat() */
+
 
     }; /* namespace aso::str */
 

@@ -130,10 +130,82 @@ public:
     std::array(const char[size]) -> std::array<const char, size>;
 
 
+//-->>-----------------------------------------------------------------------------------------------------------------
+    constexpr int mpx_value() {
+	return 105; }
+
+    template <typename T, std::size_t N, std::size_t ...idx>
+    struct Tst_rec
+    {
+//	Tst_rec(T (&d)[N]/*, std::index_sequence seq = sequence*/): data{d} {test(std::make_index_sequence<N>());};
+	T (&data)[N];
+	int value = N * mpx_value();
+	constexpr static std::size_t size = N;
+	constexpr static std::index_sequence/*<idx...>*/ sequence = std::make_index_sequence<N>{};
+
+	void test(std::index_sequence<idx...> seq) {};
+    }; /* Tst_rec */
+
+
+    template<typename T>
+    class seq_out
+    {
+    private:
+	T const & data;
+
+    public:
+	seq_out(T const & r) : data(r) {};
+
+    friend std::ostream& operator<< ( std::ostream& os , seq_out<T> s) {
+	return os << s.data << ',' << ' '; }
+    }; /* seq_out */
+
+    template <typename T, std::size_t N, std::size_t... I>
+    constexpr std::ostream& prn_tstrec(std::ostream& stream, Tst_rec<T, N, I...> rec)
+    {
+	((stream << "[--" << rec.data << "--]" << ",\tsize: " << rec.size << "; size of index sequence is: " << rec.sequence.size() << std::endl
+		<< "\t> Index sequence is: ") << ... << I/*seq_out(I)*/) << std::endl;
+	return stream;
+    }; /* prn_tstrec() */
+
+#if 0
+int main()
+{
+
+	char tst_nm[] = "The test initialization string";
+
+	Tst_rec test_record1 = {"Initial string for testing"};
+	Tst_rec test_record2 = {tst_nm};
+	Tst_rec test_record3 = {test_record2.data};
+
+//	std::clog << "[--" << test_record1.data << "--]" << ", size: " << test_record1.size << std::endl
+//		<< "[--" << test_record2.data << "--]" << ", size: " << test_record2.size  << std::endl
+//		<< "[--" << test_record3.data << "--]" << ", size: " << test_record3.size  << std::endl;
+
+	prn_tstrec(std::clog, test_record1);
+	prn_tstrec(std::clog, test_record2);
+	prn_tstrec(std::clog, test_record3);
+#endif
+
+//<<-------------------------------------------------------------------------------------------------------------------
 
 
 int main()
 {
+
+	char tst_nm[] = "The test initialization string";
+
+	Tst_rec test_record1 = {"Initial string for testing"};
+	Tst_rec test_record2 = {tst_nm};
+	Tst_rec test_record3 = {test_record2.data};
+
+//	std::clog << "[--" << test_record1.data << "--]" << ", size: " << test_record1.size << std::endl
+//		<< "[--" << test_record2.data << "--]" << ", size: " << test_record2.size  << std::endl
+//		<< "[--" << test_record3.data << "--]" << ", size: " << test_record3.size  << std::endl;
+
+	prn_tstrec(std::clog, test_record1);
+	prn_tstrec(std::clog, test_record2);
+	prn_tstrec(std::clog, test_record3);
 #if 0
     std::clog << "Test the splitter class with C-string:" << std::endl
     		  << "===================" << std::endl;
@@ -170,12 +242,12 @@ int main()
     std::clog << "Check the constcat:" << std::endl;
     std::clog << "to std::array<>:" << std::endl;
 
-    /*auto*/ std::array result_arr = aso::str::constcat("ABC", ": ", name, "; ", "catenated", " - ", idt, "; ", "array set", " - ", "is ", reverse, " -- ", "Tracer", "!!!");
+    /*auto*/ std::array result_arr = aso::str::constcat2("ABC", ": ", name, "; ", "catenated", " - ", idt, "; ", "array set", " - ", "is ", reverse, " -- ", "Tracer", "!!!");
 
     std::clog << "[ static compile-time concatenation the const string test to std::array<> ] ==> " << result_arr.data() << std::endl;
 
     std::clog << "to std::string_view:" << std::endl;
-    std::string_view result_str = aso::str::constcat("Its ", "a ", "std::string_view: ", name, " - ", "catenated", " - ", "from ", idt, " - ", "array set", " - ", "is ", "Tracer", "!!!").data();
+    std::string_view result_str = aso::str::constcat2("Its ", "a ", "std::string_view: ", name, " - ", "catenated", " - ", "from ", idt, " - ", "array set", " - ", "is ", "Tracer", "!!!").data();
 
     std::clog << "[ static compile-time concatenation the const string test with std::array ] ==> " << result_str << std::endl;
 
@@ -187,7 +259,7 @@ int main()
 //	std::array arr_prefix = aso::arr::common("The std::array string");
 	std::array arr_prefix = aso::arr::gen("The std::array string");
 
-    std::clog << "[ The std::array output ] ==> " << arr_prefix + " Testing operator +(const char(&)[])" << std::endl;
+////--->>>////    std::clog << "[ The std::array output ] ==> " << arr_prefix + " Testing operator +(const char(&)[])" << std::endl;
 //    std::clog << "[ The std::array output ] ==> " << arr_prefix + ": Testing the operator +(const char (&)[])" << std::endl;
 
 
