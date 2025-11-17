@@ -152,26 +152,60 @@ std::ostream& operator << (std::ostream& out, const testprn<sz, Item> &tprn) {
 	namespace detail
 	{
 	    // Non-constant value sequencer
-	    template<class TIt, std::size_t... idxs>
-	    constexpr std::array<std::remove_cv_t<TIt>, sizeof...(idxs)>
-	        sequencer(TIt (&a)[sizeof...(idxs)], std::index_sequence<idxs...>)
+	    template<class TIt, std::size_t... idx>
+	    constexpr std::array<std::remove_cv_t<TIt>, sizeof...(idx)>
+	        sequencer(TIt (&a)[sizeof...(idx)], std::index_sequence<idx...>)
 	    {
-	        return {{a[idxs]...}};
+	        return {{a[idx]...}};
 	    }; /* sequencer() */
 
 	    // Constant-value sequencer
-	    template<class TIt, std::size_t... idxs>
-	    constexpr std::array<TIt, sizeof...(idxs)>
-	        csequencer(TIt (&a)[sizeof...(idxs)], std::index_sequence<idxs...>)
+	    template<class TIt, std::size_t... idx>
+	    constexpr std::array<TIt, sizeof...(idx)>
+	        csequencer(TIt (&a)[sizeof...(idx)], std::index_sequence<idx...>)
 	    {
-	        return {{a[idxs]...}};
+	        return {{a[idx]...}};
 	    }; /* csequencer() */
 	};
+
+	// May be - Sequencer | Sequenced & idxs 4 index_sequence?
+	/// (union) array & integral index sequence for it
+	template <typename TItem, std::size_t N, std::size_t...idx>
+	struct unit
+	{
+	    TItem (&data)[N];
+	    constexpr static std::size_t size = N;
+	    constexpr static std::index_sequence/*<idx...>*/ sequence = std::make_index_sequence<N>{};
+	}; /* unit */
+
+	// Constant-value sequencer
+	template<class TIt, std::size_t... idx>
+	constexpr std::array<TIt, sizeof...(idx)>
+	obtain(unit<TIt, sizeof...(idx), idx... > arrcmplx/*TIt (&a)[sizeof...(idx)], std::index_sequence<idx...>*/)
+	{
+	    return {{arrcmplx.data[idx]...}};
+	}; /* obtain() */
+
+
+	template <typename TItem, std::size_t... Ns>
+	struct generator
+	{
+	    constexpr static std::size_t size = (... + Ns);
+
+	    //struct
+
+	    std::array<TItem, size> seq();
+
+	    constexpr std::array<TItem, size> obtain(TItem (&...arrs)[Ns]);
+
+	}; /* template struct seq */
+
 
 	template<typename TItem, std::size_t N>
 	constexpr std::array<TItem, N> gen(TItem (&buf)[N])
 	{
 	    return detail::csequencer(buf, std::make_index_sequence<N>{});
+	    //return obtain({buf});
 	}; /* template <> aso::gen() */
 
 

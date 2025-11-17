@@ -131,9 +131,61 @@ public:
 
 
 
+    constexpr int mpx_value() {
+	return 105; }
+
+    template <typename T, std::size_t N, std::size_t ...idx>
+    struct Tst_rec
+    {
+//	Tst_rec(T (&d)[N]/*, std::index_sequence seq = sequence*/): data{d} {test(std::make_index_sequence<N>());};
+	T (&data)[N];
+	int value = N * mpx_value();
+	constexpr static std::size_t size = N;
+	constexpr static std::index_sequence/*<idx...>*/ sequence = std::make_index_sequence<N>{};
+
+	void test(std::index_sequence<idx...> seq) {};
+    }; /* Tst_rec */
+
+
+    template<typename T>
+    class seq_out
+    {
+    private:
+	T const & data;
+
+    public:
+	seq_out(T const & r) : data(r) {};
+
+    friend std::ostream& operator<< ( std::ostream& os , seq_out<T> s) {
+	return os << s.data << ',' << ' '; }
+    }; /* seq_out */
+
+    template <typename T, std::size_t N, std::size_t... I>
+    constexpr std::ostream& prn_tstrec(std::ostream& stream, Tst_rec<T, N, I...> rec)
+    {
+	((stream << "[--" << rec.data << "--]" << ",\tsize: " << rec.size << "; size of index sequence is: " << rec.sequence.size() << std::endl
+		<< "\t> Index sequence is: ") << ... << I/*seq_out(I)*/) << std::endl;
+	return stream;
+    }; /* prn_tstrec() */
 
 int main()
 {
+
+	char tst_nm[] = "The test initialization string";
+
+	Tst_rec test_record1 = {"Initial string for testing"};
+	Tst_rec test_record2 = {tst_nm};
+	Tst_rec test_record3 = {test_record2.data};
+
+//	std::clog << "[--" << test_record1.data << "--]" << ", size: " << test_record1.size << std::endl
+//		<< "[--" << test_record2.data << "--]" << ", size: " << test_record2.size  << std::endl
+//		<< "[--" << test_record3.data << "--]" << ", size: " << test_record3.size  << std::endl;
+
+	prn_tstrec(std::clog, test_record1);
+	prn_tstrec(std::clog, test_record2);
+	prn_tstrec(std::clog, test_record3);
+
+
 #if 0
     std::clog << "Test the splitter class with C-string:" << std::endl
     		  << "===================" << std::endl;
