@@ -1,10 +1,11 @@
 //============================================================================
 // Name        : concat.hpp
 // Author      : Andrey Solomatov
-// Version     : 0.8.0.3
-// Copyright   : Copyright (c) aso by 07.11.25.
-// Description : Static concatenation ANSI-style string and generate std::array for std::string_view
-//		    Sequence array expand implementation.
+// Version     : 0.8.0.4-s
+// Copyright   : Copyright (c) aso by 17.11.25.
+// Description : Literally merging the ANSI-style strings into a generated std::array.
+//		 For various uses, such as initializing std::string_view.
+//		 Sequential implementation of the expansion of the array items values.
 //============================================================================
 
 #ifndef __AARRAYS_HPP__
@@ -81,7 +82,7 @@ std::ostream& operator << (std::ostream& out, const testprn<sz, Item> &tprn) {
 	template <class Act, typename Item, std::size_t sz>
 	constexpr auto chainsplit(Act act, const Item (&buf)[sz])
 	{
-	    // std::clog << testprn(buf);
+  //	    std::clog << testprn(buf);
 	    return splitter(act,buf);
 	}; /* template <> chainsplit() */
 
@@ -93,21 +94,22 @@ std::ostream& operator << (std::ostream& out, const testprn<sz, Item> &tprn) {
 	//
 	// Template parameters:
 	// @tparam Act	  - type of the action executor, functor with template <...> operator()
-	// @tparam Item   - type of the first array buffer 'buf' items
+	// @tparam Item   - type of the array buffers 'buf' & 'bufs' items
 	// @tparam sz     - size of the first array buffer 'buf'
-	// @tparam Bufs   - variadic pack of type parameters, that passed to procedure
+	// @tparam sizes  - variadic pack parameters, suzes of the arrays, that passed to procedure
 	//
 	// Parameters:
 	// @param[in]	act   - type Act action parameter, that called at final string buffers parsing
 	// @param[in]   buf   - reference to const array of the any size
 	// @param[in]   bufs  - variadic pack of reference to const arrays of the any sizes, that must be processed
-	template <class Act, typename Item, std::size_t sz, typename... Bufs>
-	constexpr auto chainsplit(Act&& act,  const Item (&buf)[sz], const Bufs&... bufs)
+	template <class Act, typename Item, std::size_t sz, std::size_t... sizes>
+	constexpr auto chainsplit(Act&& act, const Item (&buf)[sz], const Item (&...bufs)[sizes] /*const Bufs&... bufs*/)
 	{
 //	    std::clog << testprn(buf);
 	    return chainsplit([act, &buf]<typename... Its>(Its... its) constexpr {
 		return splitter(act, buf, its...);}, bufs...);
 	}; /* template <> chainsplit() */
+
 
 
 	//!
@@ -121,12 +123,12 @@ std::ostream& operator << (std::ostream& out, const testprn<sz, Item> &tprn) {
 	// @param[in]   bufs  - variadic parameters pack of reference to set of the const C-style string buffers,
 	//		that must be concatenated
 	template <typename... Bufs>
-	constexpr auto common(const Bufs&... bufs)
+	constexpr auto merge(const Bufs&... bufs)
 	{
-	    return chainsplit([]<typename... Its>(Its... its) constexpr -> std::array<std::common_type_t<Its...>, sizeof...(Its)> {
+	    return chainsplit([]<typename... Its>(Its... its) constexpr -> const std::array<std::common_type_t<Its...>, sizeof...(Its)> {
 				    return { its...};},
 							bufs...);
-	}; /* template <> aso::constcat() */
+	}; /* template <> aso::arr::merge() */
 
 #if 0
 	//!
@@ -261,16 +263,16 @@ std::ostream& operator << (std::ostream& out, const testprn<sz, Item> &tprn) {
 	//
 	// Template parameters:
 	// @tparam Act	  - type of the action executor, functor with template <...> operator()
-	// @tparam Item   - type of the first array buffer 'buf' items
+	// @tparam Item   - type of the array buffers - the 'buf' & the 'bufs' items
 	// @tparam sz     - size of the first array buffer 'buf'
-	// @tparam Bufs   - variadic pack of type parameters, that passed to procedure
+	// @tparam sizes  - variadic template pack sizes of the buffers, that passed to procedure
 	//
 	// Parameters:
 	// @param[in]	act   - type Act action parameter, that called at final string buffers parsing
 	// @param[in]   buf   - reference to const array of the any size
 	// @param[in]   bufs  - variadic pack of reference to const arrays of the any sizes, that must be processed
-	template <class Act, typename Item, std::size_t sz, typename... Bufs>
-	constexpr auto split(Act&& act, const Item (&buf)[sz], const Bufs&... bufs)
+	template <class Act, typename Item, std::size_t sz, std::size_t... sizes >
+	constexpr auto split(Act&& act, const Item (&buf)[sz], const  Item (&...bufs)[sizes])
 	{
 //	    std::clog << testprn(buf);
 	    /// drop the trailing string terminator of the buf
@@ -283,20 +285,21 @@ std::ostream& operator << (std::ostream& out, const testprn<sz, Item> &tprn) {
 
 
 	//!
-	// Template function "constcat" - create std::array object from the passed string buffers,
+	// Template function "merge" - merging passed string buffers into one const std::array object,
 	//
 	// Template parameters:
-	// @tparam Bufs	  - variadic template types pack for the passed string buffers
+	// @tparam Item	  - type of the passed string buffers (variant of the char's type)
+	// @tparam sizes  - variadic template pack sizes of the passed string buffers
 	//
 	// Parameters:
 	// @param[in]   bufs  - variadic parameters pack of reference to set of the const C-style string buffers,
-	//		that must be concatenated
-	template <typename... Bufs>
-	constexpr auto constcat(const Bufs&... bufs)
+	//		that must be merged
+	template <typename Item, std::size_t... sizes>
+	constexpr auto merge(const Item (&...bufs)[sizes])
 	{
 	    return split([]<typename... Its>(Its... its) constexpr -> std::array<std::common_type_t<Its...>, sizeof...(Its)>
 				{ return { its...};}, bufs...);
-	}; /* template <> aso::str::constcat() */
+	}; /* template <> aso::str::merge() */
 
     }; /* namespace aso::str */
 
@@ -308,7 +311,7 @@ template </*typename Item,*/ std::size_t sz1, std::size_t sz2>
 //constexpr std::array<const char, sz1 + sz2 - 1> operator +(/*const char (&*/std::string_view str1/*)[sz1]*/, /*const char (&*/std::string_view str2/*)[sz2]*/)
 constexpr std::array<const char, sz1 + sz2 - 1> operator +(const std::array<const char, sz1> arr1, const char(&buf2)[sz2])
 {
-    return aso::str::constcat<const char(&)[sz1], const char(&)[sz2]>(arr1.data(), buf2);
+    return aso::str::merge<const char(&)[sz1], const char(&)[sz2]>(arr1.data(), buf2);
 };
 
 #if 0
