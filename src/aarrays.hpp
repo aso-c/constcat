@@ -1,7 +1,7 @@
 //============================================================================
 // Name        : concat.hpp
 // Author      : Andrey Solomatov
-// Version     : 0.8.0.1
+// Version     : 0.8.0.2-r
 // Copyright   : Copyright (c) aso by 17.11.25.
 // Description : Static concatenation ANSI-style string and generate std::array for std::string_view
 //		    Recursive implementation
@@ -16,30 +16,30 @@ namespace aso
 {
     namespace arr
     {
-    //!
-    // Template function "splitter" - split array into individual elements
-    // and return object from callint the action template procedure with all splitted items
-    //
-    //
-    // Template parameters:
-    // @tparam Act	  - type of the action executor, functor with template <...> operator()
-    // @tparam TItem  - type the item of input array
-    // @tparam size   - std::size_t, size of input array
-    //
-    // @tparam ... Its - trailng variadic pack types of the splitted individual items from input buffer
-    //
-    // Parameters:
-    // @param[in]	actor - type Act parameter with operator() or a lambda, named or anonymous
-    // @param[in]   buf   - reference to const TItem array, with the "size" sizeof
-    template <class Act, typename TItem, std::size_t size, typename... Its>
-    constexpr auto splitter(Act&& action, const TItem (&buf)[size], Its...its)
-    {
-//	std::clog << "Processing item " << size-1 << ": '" << (buf[size-1]? buf[size-1]: '.') << '\'' <<  std::endl;
-	if constexpr (size > 1)
-	    return splitter<Act, TItem, size-1, Its...>(std::forward<Act>(action), reinterpret_cast<const TItem (&)[size-1]>(buf), buf[size-1], its...);
-	else
-	    return action(buf[0], its...);
-    }; /* template <> splitter */
+	//!
+	// Template function "splitter" - split array into individual elements
+	// and return object from callint the action template procedure with all splitted items
+	//
+	//
+	// Template parameters:
+	// @tparam Act	  - type of the action executor, functor with template <...> operator()
+	// @tparam TItem  - type the item of input array
+	// @tparam size   - std::size_t, size of input array
+	//
+	// @tparam ... Its - trailng variadic pack types of the splitted individual items from input buffer
+	//
+	// Parameters:
+	// @param[in]	actor - type Act parameter with operator() or a lambda, named or anonymous
+	// @param[in]   buf   - reference to const TItem array, with the "size" sizeof
+	template <class Act, typename TItem, std::size_t size, typename... Its>
+	constexpr auto splitter(Act&& action, const TItem (&buf)[size], Its...its)
+	{
+//	    std::clog << "Processing item " << size-1 << ": '" << (buf[size-1]? buf[size-1]: '.') << '\'' <<  std::endl;
+	    if constexpr (size > 1)
+		return splitter<Act, TItem, size-1, Its...>(std::forward<Act>(action), reinterpret_cast<const TItem (&)[size-1]>(buf), buf[size-1], its...);
+	    else
+		return action(buf[0], its...);
+	}; /* template <> splitter */
 
 
 
@@ -67,59 +67,50 @@ std::ostream& operator << (std::ostream& out, const testprn<sz, Item> &tprn) {
 
 
 
-    //!
-    // Template function "chainsplit" - operating with any string buffers
-    // and call splitter every buffer, that is passed into
-    // Terminal version with one string buffer for call a splitter
-    //
-    // Template parameters:
-    // @tparam Act	  - type of the action executor, functor with template <...> operator()
-    // @tparam Item   - type of the array buffer 'buf' items
-    // @tparam sz     - size of the array buffer 'buf'
-    //
-    // Parameters:
-    // @param[in]	act   - type Act action parameter, that called at final string buffers parsing
-    // @param[in]   buf   - reference to const array of the any size
-    template <class Act, typename Item, std::size_t sz>
-    constexpr auto chainsplit(Act act, const Item (&buf)[sz])
-    {
-  //	std::clog << testprn(buf);
-	return splitter(act,buf);
+	//!
+	// Template function "chainsplit" - operating with any string buffers
+	// and call splitter every buffer, that is passed into
+	// Terminal version with one string buffer for call a splitter
+	//
+	// Template parameters:
+	// @tparam Act	  - type of the action executor, functor with template <...> operator()
+	// @tparam Item   - type of the array buffer 'buf' items
+	// @tparam sz     - size of the array buffer 'buf'
+	//
+	// Parameters:
+	// @param[in]	act   - type Act action parameter, that called at final string buffers parsing
+	// @param[in]   buf   - reference to const array of the any size
+	template <class Act, typename Item, std::size_t sz>
+	constexpr auto chainsplit(Act act, const Item (&buf)[sz])
+	{
+  //	    std::clog << testprn(buf);
+	    return splitter(act,buf);
     }; /* template <> chainsplit() */
 
 
-    //!
-    // Template function "chainsplit" - operating with set of any string buffers
-    // and call splitter every buffer, that is passed into this procedure
-    // Initial & intermediate version with with any numbers set of buffers
-    //
-    // Template parameters:
-    // @tparam Act	  - type of the action executor, functor with template <...> operator()
-    // @tparam Item   - type of the first array buffer 'buf' items
-    // @tparam sz     - size of the first array buffer 'buf'
-    // @tparam Bufs   - variadic pack of type parameters, that passed to procedure
-    //
-    // Parameters:
-    // @param[in]	act   - type Act action parameter, that called at final string buffers parsing
-    // @param[in]   buf   - reference to const array of the any size
-    // @param[in]   bufs  - variadic pack of reference to const arrays of the any sizes, that must be processed
-    template <class Act, typename Item, std::size_t sz, typename... Bufs>
-    constexpr auto chainsplit(Act&& act,  const Item (&buf)[sz], const Bufs&... bufs)
-    {
-//	std::clog << testprn(buf);
-	return chainsplit([act, &buf]<typename... Its>(Its... its) constexpr {
-	    return splitter(act, buf, its...);}, bufs...);
-    }; /* template <> chainsplit() */
-
-
-    // Use explicit defined sizes of the bufs
-    template <class Act, typename Item, std::size_t sz, std::size_t... sizes/*typename... Bufs*/>
-    constexpr auto chainsplit2(Act&& act, const Item (&buf)[sz], const Item (&...bufs)[sizes] /*const Bufs&... bufs*/)
-    {
-//	std::clog << testprn(buf);
-	return chainsplit([act, &buf]<typename... Its>(Its... its) constexpr {
-	    return splitter(act, buf, its...);}, bufs...);
-    }; /* template <> chainsplit() */
+	//!
+	// Template function "chainsplit" - operating with set of any string buffers
+	// and call splitter every buffer, that is passed into this procedure
+	// Initial & intermediate version with with any numbers set of buffers
+	//
+	// Template parameters:
+	// @tparam Act	  - type of the action executor, functor with template <...> operator()
+	// @tparam Item   - type of the array buffers 'buf' & 'bufs' items
+	// @tparam sz     - size of the first array buffer 'buf'
+//	// @tparam Bufs   - variadic pack of type parameters, that passed to procedure
+	// @tparam sizes  - variadic pack parameters, suzes of the arrays, that passed to procedure
+	//
+	// Parameters:
+	// @param[in]	act   - type Act action parameter, that called at final string buffers parsing
+	// @param[in]   buf   - reference to const array of the any size
+	// @param[in]   bufs  - variadic pack of reference to const arrays of the any sizes, that must be processed
+	template <class Act, typename Item, std::size_t sz, std::size_t... sizes>
+	constexpr auto chainsplit(Act&& act, const Item (&buf)[sz], const Item (&...bufs)[sizes] /*const Bufs&... bufs*/)
+	{
+//	    std::clog << testprn(buf);
+	    return chainsplit([act, &buf]<typename... Its>(Its... its) constexpr {
+		return splitter(act, buf, its...);}, bufs...);
+	}; /* template <> chainsplit() */
 
 
 
@@ -194,27 +185,18 @@ std::ostream& operator << (std::ostream& out, const testprn<sz, Item> &tprn) {
 	//
 	// Template parameters:
 	// @tparam Act	  - type of the action executor, functor with template <...> operator()
-	// @tparam Item   - type of the first array buffer 'buf' items
+	// @tparam Item   - type of the array buffers - the 'buf' & the 'bufs' items
 	// @tparam sz     - size of the first array buffer 'buf'
-	// @tparam Bufs   - variadic pack of type parameters, that passed to procedure
+	// @tparam sizes  - variadic template pack sizes of the buffers, that passed to procedure
 	//
 	// Parameters:
 	// @param[in]	act   - type Act action parameter, that called at final string buffers parsing
 	// @param[in]   buf   - reference to const array of the any size
 	// @param[in]   bufs  - variadic pack of reference to const arrays of the any sizes, that must be processed
-	template <class Act, typename Item, std::size_t sz, typename... Bufs>
-	constexpr auto split(Act&& act, const Item (&buf)[sz], const Bufs&... bufs)
+	template <class Act, typename Item, std::size_t sz, std::size_t... sizes >
+	constexpr auto split(Act&& act, const Item (&buf)[sz], const  Item (&...bufs)[sizes])
 	{
 //	    std::clog << testprn(buf);
-	    /// drop the trailing string terminator of the buf
-	    return split([act, &buf]<typename... Its>(Its... its) constexpr
-				{ return arr::splitter(act, reinterpret_cast<const Item (&)[sz-1]>(buf), its...);},
-								bufs...);
-	}; /* template <> aso::str::split() */
-
-	template <class Act, typename Item, std::size_t sz, std::size_t... sizes /*typename... Bufs*/>
-	constexpr auto split2(Act&& act, const Item (&buf)[sz], const  Item (&...bufs)[sizes] /*Bufs&... bufs*/)
-	{
 	    /// drop the trailing string terminator of the buf
 	    return split([act, &buf]<typename... Its>(Its... its) constexpr
 				{ return arr::splitter(act, reinterpret_cast<const Item (&)[sz-1]>(buf), its...);},
@@ -228,23 +210,16 @@ std::ostream& operator << (std::ostream& out, const testprn<sz, Item> &tprn) {
 	// Template function "constcat" - create std::array object from the passed string buffers,
 	//
 	// Template parameters:
-	// @tparam Bufs	  - variadic template types pack for the passed string buffers
+	// @tparam Item	  - type of the passed string buffers (variant of the char's type)
+	// @tparam sizes  - variadic template pack sizes of the passed string buffers
 	//
 	// Parameters:
 	// @param[in]   bufs  - variadic parameters pack of reference to set of the const C-style string buffers,
-	//		that must be concatenated
-	template <typename... Bufs>
-	constexpr auto constcat(const Bufs&... bufs)
-	{
-	    return split2([]<typename... Its>(Its... its) constexpr -> const std::array<std::common_type_t<Its...>, sizeof...(Its)>
-				{ return { its...};}, bufs...);
-	}; /* template <> aso::str::constcat() */
-
-//	template <typename... Bufs>
+	//		that must be merged
 	template <typename Item, std::size_t... sizes>
-	constexpr auto constcat2(const /*Bufs&...*/ Item (&...bufs)[sizes])
+	constexpr auto constcat(const Item (&...bufs)[sizes])
 	{
-	    return split2([]<typename... Its>(Its... its) constexpr -> const std::array<std::common_type_t<Its...>, sizeof...(Its)>
+	    return split([]<typename... Its>(Its... its) constexpr -> const std::array<std::common_type_t<Its...>, sizeof...(Its)>
 				{ return { its...};}, bufs...);
 	}; /* template <> aso::str::constcat() */
 
