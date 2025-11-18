@@ -1,6 +1,6 @@
 # constcat
 "Literally" constexpr concatenation string literals and/or (potentially) C-like string or other similar buffer objects in compile time.  
-"Sequental" implemetation - use std::{...}sequence.
+"Sequental" implementation - used std::{...}sequence.
 
 Obtain code:
 

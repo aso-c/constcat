@@ -1,11 +1,13 @@
 //============================================================================
-// Name        : concat.hpp
-// Author      : Andrey Solomatov
-// Version     : 0.8.0.4-s
-// Copyright   : Copyright (c) aso by 17.11.25.
-// Description : Literally merging the ANSI-style strings into a generated std::array.
-//		 For various uses, such as initializing std::string_view.
-//		 Sequential implementation of the expansion of the array items values.
+// @file        : arrays.hpp
+// @author      : Andrey Solomatov (aso)
+// Copyright    : Copyright (c) aso by 17.11.25.
+// @date Created  07.11.2025
+//       Updated  17.11.2025
+// @version     : 0.8.0.5(s)
+// @description : Literally merging the ANSI-style strings into a generated std::array.
+//		  For various uses, such as initializing std::string_view.
+//		  Secuental implementation of the expansion of the array items values.
 //============================================================================
 
 #ifndef __AARRAYS_HPP__
@@ -66,8 +68,47 @@ std::ostream& operator << (std::ostream& out, const testprn<sz, Item> &tprn) {
 
 
 
+
+	///FixMe Temporaily!!! Direct generation of the std::array from the C-style array (temporarily)
+	template <typename Item, std::size_t Sz>
+	constexpr auto gen(Item (&buf)[Sz])
+	{
+//	    return splitter(act, buf);
+	    return splitter([]<typename... Its>(Its... its) constexpr -> std::array<Item, sizeof...(its)> {
+					return { its...};},
+							     buf);
+	}; /* template <> aso::gen() */
+
 	//!
-	// Template function "chainsplit" - operating with any string buffers
+	// Template function "aso::arr::gen" - create const std::array object from the passed
+	//		C-style array buffer of any size (buffer may be is not a string)
+	//
+	// Template parameters:
+	// @tparam Act	  - type of the action executor, functor with template <...> operator()
+	// @tparam Item  -  type of input array items
+	// @tparam Sz	  - std::size_t, size of input array
+	//
+	// @tparam ... Its - trailng variadic pack types of the splitted individual items from input buffer
+	//
+	//
+	// Parameters:
+	// @param[in]	actor - type Act parameter with operator() or a lambda, named or anonymous
+	// @param[in]   buf   - reference to C-style array with the "size" sizeof,
+	//			that must be converted to std::array
+	// @param[in]   its   - variadic parameters pack of the splitted individual items
+	//			for adding to generated std::array
+	template <class Act, typename Item, std::size_t Sz, typename... Its>
+	constexpr auto gen(Act&& act, Item (&buf)[Sz], Its...its)
+	{
+	    return splitter(act, buf, its...);
+//	    return splitter([]<typename... LIts>(LIts... lits) constexpr -> std::array<Item, sizeof...(lits)> {
+//					return { lits...};},
+//							buf, its...);
+	}; /* template <> aso::gen() */
+
+
+	//!
+	// Template function "generate" - operating with any string buffers
 	// and call splitter every buffer, that is passed into
 	// Terminal version with one string buffer for call a splitter
 	//
@@ -80,15 +121,14 @@ std::ostream& operator << (std::ostream& out, const testprn<sz, Item> &tprn) {
 	// @param[in]	act   - type Act action parameter, that called at final string buffers parsing
 	// @param[in]   buf   - reference to const array of the any size
 	template <class Act, typename Item, std::size_t sz>
-	constexpr auto chainsplit(Act act, const Item (&buf)[sz])
+	constexpr auto generate(Act act, const Item (&buf)[sz])
 	{
-  //	    std::clog << testprn(buf);
-	    return splitter(act,buf);
-	}; /* template <> chainsplit() */
+	    return gen(act,buf);
+	}; /* template <> generate() */
 
 
 	//!
-	// Template function "chainsplit" - operating with set of any string buffers
+	// Template function "generate" - operating with set of any string buffers
 	// and call splitter every buffer, that is passed into this procedure
 	// Initial & intermediate version with with any numbers set of buffers
 	//
@@ -103,18 +143,17 @@ std::ostream& operator << (std::ostream& out, const testprn<sz, Item> &tprn) {
 	// @param[in]   buf   - reference to const array of the any size
 	// @param[in]   bufs  - variadic pack of reference to const arrays of the any sizes, that must be processed
 	template <class Act, typename Item, std::size_t sz, std::size_t... sizes>
-	constexpr auto chainsplit(Act&& act, const Item (&buf)[sz], const Item (&...bufs)[sizes] /*const Bufs&... bufs*/)
+	constexpr auto generate(Act&& act, const Item (&buf)[sz], const Item (&...bufs)[sizes])
 	{
-//	    std::clog << testprn(buf);
-	    return chainsplit([act, &buf]<typename... Its>(Its... its) constexpr {
-		return splitter(act, buf, its...);}, bufs...);
-	}; /* template <> chainsplit() */
+	    return generate([act, &buf]<typename... Its>(Its... its) constexpr {
+		return gen(act, buf, its...);}, bufs...);
+	}; /* template <> generate() */
 
 
 
 	//!
 	// Template function "constcat" - create std::array object from the passed buffers of any type
-	//		(buffer may be not a string!!!)
+	//		(buffer may be not a string)
 	//
 	// Template parameters:
 	// @tparam Bufs	  - variadic template types pack for the passed string buffers
@@ -125,32 +164,13 @@ std::ostream& operator << (std::ostream& out, const testprn<sz, Item> &tprn) {
 	template <typename... Bufs>
 	constexpr auto merge(const Bufs&... bufs)
 	{
-	    return chainsplit([]<typename... Its>(Its... its) constexpr -> const std::array<std::common_type_t<Its...>, sizeof...(Its)> {
+	    return generate([]<typename... Its>(Its... its) constexpr -> const std::array<std::common_type_t<Its...>, sizeof...(Its)> {
 				    return { its...};},
 							bufs...);
 	}; /* template <> aso::arr::merge() */
 
-#if 0
-	//!
-	// Template function "aso::arr::gen" - create const std::array object from the passed buffers of single type
-	//		and any sizes (buffer must be is not a string!!!)
-	//
-	// Template parameters:
-	// @tparam Bufs	  - variadic template types pack for the passed string buffers
-	//
-	// Parameters:
-	// @param[in]   bufs  - variadic parameters pack of reference to set of the const C-style string buffers,
-	//		that must be concatenated
-	template <typename Item, std::size_t sz, std::size_t... szs>
-	constexpr auto gen(Item (&buf)[sz], Item (&...bufs)[szs])
-	{
-	    return chainsplit([]<typename... Its>(Its... its) constexpr -> std::array<Item, sizeof...(its)> {
-				    return { its...};},
-							buf, bufs...);
-	}; /* template <> aso::gen() */
-#endif
 
-
+#if 0	// Temporarily exclude index sequence using example
 	namespace detail
 	{
 	    // Non-constant value sequencer
@@ -226,6 +246,7 @@ std::ostream& operator << (std::ostream& out, const testprn<sz, Item> &tprn) {
 	{
 	    return detail::to_array_impl(std::move(a), std::make_index_sequence<N>{});
 	}
+#endif	// end of temporarily exclude index sequence using example
 
 
     }; /* namespace aso::arr */
@@ -235,7 +256,7 @@ std::ostream& operator << (std::ostream& out, const testprn<sz, Item> &tprn) {
     {
 
 	//!
-	// Template function "aso::str::split" - operating with set of any string buffers,
+	// Template function "aso::str::generate" - operating with set of any string buffers,
 	// and drop trail terminator of the string for all buffers, exclude last one,
 	// and invoke splitter for every buffer, that is passed into this procedure
 	// Terminal version with one string buffer: pass to a chainsplitter()
@@ -249,14 +270,14 @@ std::ostream& operator << (std::ostream& out, const testprn<sz, Item> &tprn) {
 	// @param[in]	act   - type Act action parameter, that called at final string buffers parsing
 	// @param[in]   buf   - reference to const array of the any size
 	template <class Act, typename Item, std::size_t sz>
-	constexpr auto split(Act act, const Item (&buf)[sz])
+	constexpr auto generate(Act act, const Item (&buf)[sz])
 	{
-	    return arr::chainsplit(act, buf);
-	}; /* template <> aso::str::split() */
+	    return arr::generate(act, buf);
+	}; /* template <> aso::str::generate() */
 
 
 	//!
-	// Template function "aso::str::split" - operating with set of any string buffers,
+	// Template function "aso::str::generate" - operating with set of any string buffers,
 	// and drop trail terminator of the string for all buffers, exclude last one,
 	// and invoke splitter for every buffer, that is passed into this procedure
 	// Initial & intermediate version with set of some buffers
@@ -272,14 +293,14 @@ std::ostream& operator << (std::ostream& out, const testprn<sz, Item> &tprn) {
 	// @param[in]   buf   - reference to const array of the any size
 	// @param[in]   bufs  - variadic pack of reference to const arrays of the any sizes, that must be processed
 	template <class Act, typename Item, std::size_t sz, std::size_t... sizes >
-	constexpr auto split(Act&& act, const Item (&buf)[sz], const  Item (&...bufs)[sizes])
+	constexpr auto generate(Act&& act, const Item (&buf)[sz], const  Item (&...bufs)[sizes])
 	{
 //	    std::clog << testprn(buf);
 	    /// drop the trailing string terminator of the buf
-	    return split([act, &buf]<typename... Its>(Its... its) constexpr
-				{ return arr::splitter(act, reinterpret_cast<const Item (&)[sz-1]>(buf), its...);},
+	    return generate([act, &buf]<typename... Its>(Its... its) constexpr
+				{ return arr::gen(act, reinterpret_cast<const Item (&)[sz-1]>(buf), its...);},
 								bufs...);
-	}; /* template <> aso::str::split() */
+	}; /* template <> aso::str::generate() */
 
 
 
@@ -297,7 +318,7 @@ std::ostream& operator << (std::ostream& out, const testprn<sz, Item> &tprn) {
 	template <typename Item, std::size_t... sizes>
 	constexpr auto merge(const Item (&...bufs)[sizes])
 	{
-	    return split([]<typename... Its>(Its... its) constexpr -> std::array<std::common_type_t<Its...>, sizeof...(Its)>
+	    return generate([]<typename... Its>(Its... its) constexpr -> const std::array<std::common_type_t<Its...>, sizeof...(Its)>
 				{ return { its...};}, bufs...);
 	}; /* template <> aso::str::merge() */
 
