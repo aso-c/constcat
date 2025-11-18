@@ -189,6 +189,7 @@ int main()
 	prn_tstrec(std::clog, test_record3);
 
 
+
 #if 0
     std::clog << "Test the splitter class with C-string:" << std::endl
     		  << "===================" << std::endl;
@@ -222,8 +223,19 @@ int main()
 			"ABC", ": ", name, "; ", "cde", " - ", idt, "; ", "offset sector", " - ", "is ", reverse, " -- ", "Tracer", "!!!");
 #endif
     std::clog << std::endl << "===================" << std::endl;
-    std::clog << "Check the constcat:" << std::endl;
+    std::clog << "Check the literally merging:" << std::endl;
     std::clog << "to std::array<>:" << std::endl;
+
+
+	const char aa[] = {'A', 'b', 'b', 'a'};
+	const char sp[] = { ' ', '-', ' '};
+	const char bb[] = "Bolding";
+	std::array ssarr = aso::arr::merge(aa, sp, bb);
+
+
+    std::clog << "[ Test the buffer merging to std::string_view ] ==> " << ssarr << std::endl;
+
+
 
     /*auto*/ std::array result_arr = aso::str::merge("ABC", ": ", name, "; ", "catenated", " - ", idt, "; ", "array set", " - ", "is ", reverse, " -- ", "Tracer", "!!!");
 
