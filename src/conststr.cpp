@@ -246,13 +246,13 @@ int main()
 
     std::clog << "[ static compile-time concatenation the const string test with std::array ] ==> " << result_str << std::endl;
 
-    std::clog << "[ static compile-time concatenation the const string test to std::string_view ] ==> XXX" << result_str << std::endl;
+    std::clog << "[ static compile-time concatenation the const string test to std::string_view ] ==> XXX " << result_str << std::endl;
 
 //	const std::array arr_prefix = std::to_array("The std::array string");
 //	const std::array arr_prefix = {'T','h','e',' ','s','t','d',':',':','a','r','r','a','y',' ','s','t','r','i','n','g'};
 //	std::array arr_prefix = aso::str::constcat("The std::array string");
 //	std::array arr_prefix = aso::arr::common("The std::array string");
-	std::array arr_prefix = aso::arr::gen("The std::array string");
+	std::array arr_prefix = aso::arr::genx("The std::array string");
 
 ////--->>>////    std::clog << "[ The std::array output ] ==> " << arr_prefix + " Testing operator +(const char(&)[])" << std::endl;
 //    std::clog << "[ The std::array output ] ==> " << arr_prefix + ": Testing the operator +(const char (&)[])" << std::endl;

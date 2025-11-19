@@ -3,8 +3,8 @@
 // @author      : Andrey Solomatov (aso)
 // Copyright    : Copyright (c) aso by 17.11.25.
 // @date Created  07.11.2025
-//       Updated  17.11.2025
-// @version     : 0.8.0.5(r)
+//       Updated  19.11.2025
+// @version     : 0.8.0.6(r)
 // @description : Literally merging the ANSI-style strings into a generated std::array.
 //		  For various uses, such as initializing std::string_view.
 //		  Recursive implementation of the expansion of the array items values.
@@ -33,6 +33,7 @@ namespace aso
 	// Parameters:
 	// @param[in]	actor - type Act parameter with operator() or a lambda, named or anonymous
 	// @param[in]   buf   - reference to const TItem array, with the "size" sizeof
+#if 0
 	template <class Act, typename TItem, std::size_t size, typename... Its>
 	constexpr auto splitter(Act&& action, const TItem (&buf)[size], Its...its)
 	{
@@ -42,6 +43,7 @@ namespace aso
 	    else
 		return action(buf[0], its...);
 	}; /* template <> splitter */
+#endif
 
 
 #if 0
@@ -70,13 +72,12 @@ std::ostream& operator << (std::ostream& out, const testprn<sz, Item> &tprn) {
 
 	///FixMe Temporaily!!! Direct generation of the std::array from the C-style array (temporarily)
 	template <typename Item, std::size_t Sz>
-	constexpr auto gen(Item (&buf)[Sz])
+	constexpr auto genx(Item (&buf)[Sz])
 	{
-//	    return splitter(act, buf);
-	    return splitter([]<typename... Its>(Its... its) constexpr -> std::array<Item, sizeof...(its)> {
+	    return gen([]<typename... Its>(Its... its) constexpr -> std::array<Item, sizeof...(its)> {
 					return { its...};},
 							     buf);
-	}; /* template <> aso::gen() */
+	}; /* template <> aso::genx() */
 
 	//!
 	// Template function "aso::arr::gen" - create const std::array object from the passed
@@ -99,10 +100,10 @@ std::ostream& operator << (std::ostream& out, const testprn<sz, Item> &tprn) {
 	template <class Act, typename Item, std::size_t Sz, typename... Its>
 	constexpr auto gen(Act&& act, Item (&buf)[Sz], Its...its)
 	{
-	    return splitter(act, buf, its...);
-//	    return splitter([]<typename... LIts>(LIts... lits) constexpr -> std::array<Item, sizeof...(lits)> {
-//					return { lits...};},
-//							buf, its...);
+	    if constexpr (Sz > 1)
+		return gen/*splitter*/<Act, Item, Sz-1, Its...>(std::forward<Act>(act), reinterpret_cast<const Item (&)[Sz-1]>(buf), buf[Sz-1], its...);
+	    else
+		return act(buf[0], its...);
 	}; /* template <> aso::gen() */
 
 
