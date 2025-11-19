@@ -4,7 +4,7 @@
 // Copyright    : Copyright (c) aso by 17.11.25.
 // @date Created  07.11.2025
 //       Updated  19.11.2025
-// @version     : 0.8.0.6(r)
+// @version     : 0.8.1(r)
 // @description : Literally merging the ANSI-style strings into a generated std::array.
 //		  For various uses, such as initializing std::string_view.
 //		  Recursive implementation of the expansion of the array items values.
@@ -33,40 +33,14 @@ namespace aso
 	// Parameters:
 	// @param[in]	actor - type Act parameter with operator() or a lambda, named or anonymous
 	// @param[in]   buf   - reference to const TItem array, with the "size" sizeof
-#if 0
 	template <class Act, typename TItem, std::size_t size, typename... Its>
 	constexpr auto splitter(Act&& action, const TItem (&buf)[size], Its...its)
 	{
-//	    std::clog << "Processing item " << size-1 << ": '" << (buf[size-1]? buf[size-1]: '.') << '\'' <<  std::endl;
 	    if constexpr (size > 1)
 		return splitter<Act, TItem, size-1, Its...>(std::forward<Act>(action), reinterpret_cast<const TItem (&)[size-1]>(buf), buf[size-1], its...);
 	    else
 		return action(buf[0], its...);
 	}; /* template <> splitter */
-#endif
-
-
-#if 0
-/// Envelope for check the sizeof of the passed string buffers
-template <std::size_t sz, typename Item>
-struct testprn
-{
-    constexpr testprn(Item (&inbuf)[sz]): buf{inbuf} {};
-
-    constexpr std::ostream& operator ()(std::ostream& out) const {
-	return out << " \"" << buf << "\": sizeof: " << sizeof(buf) << " ,";
-    };
-
-    Item (&buf)[sz];
-};
-
-/// operator <<() for print to ostream object of the class testprn
-template <std::size_t sz, typename Item>
-std::ostream& operator << (std::ostream& out, const testprn<sz, Item> &tprn) {
-    return tprn(out);
-}
-#endif
-
 
 
 
@@ -101,7 +75,7 @@ std::ostream& operator << (std::ostream& out, const testprn<sz, Item> &tprn) {
 	constexpr auto gen(Act&& act, Item (&buf)[Sz], Its...its)
 	{
 	    if constexpr (Sz > 1)
-		return gen/*splitter*/<Act, Item, Sz-1, Its...>(std::forward<Act>(act), reinterpret_cast<const Item (&)[Sz-1]>(buf), buf[Sz-1], its...);
+		return gen<Act, Item, Sz-1, Its...>(std::forward<Act>(act), reinterpret_cast<const Item (&)[Sz-1]>(buf), buf[Sz-1], its...);
 	    else
 		return act(buf[0], its...);
 	}; /* template <> aso::gen() */
@@ -143,7 +117,7 @@ std::ostream& operator << (std::ostream& out, const testprn<sz, Item> &tprn) {
 	// @param[in]   buf   - reference to const array of the any size
 	// @param[in]   bufs  - variadic pack of reference to const arrays of the any sizes, that must be processed
 	template <class Act, typename Item, std::size_t sz, std::size_t... sizes>
-	constexpr auto generate(Act&& act, const Item (&buf)[sz], const Item (&...bufs)[sizes] /*const Bufs&... bufs*/)
+	constexpr auto generate(Act&& act, const Item (&buf)[sz], const Item (&...bufs)[sizes])
 	{
 	    return generate([act, &buf]<typename... Its>(Its... its) constexpr {
 		return gen(act, buf, its...);}, bufs...);
@@ -161,12 +135,12 @@ std::ostream& operator << (std::ostream& out, const testprn<sz, Item> &tprn) {
 	// Parameters:
 	// @param[in]   bufs  - variadic parameters pack of reference to set of the const C-style string buffers,
 	//		that must be concatenated
-	template <typename... Bufs>
-	constexpr auto merge(const Bufs&... bufs)
+	template <typename It1, std::size_t Sz1, typename It2, std::size_t Sz2, std::size_t... Szs>
+	constexpr auto merge(It1 (&buf1)[Sz1], It2 (&buf2)[Sz2], auto (&...bufs)[Szs])
 	{
 	    return generate([]<typename... Its>(Its... its) constexpr -> const std::array<std::common_type_t<Its...>, sizeof...(Its)> {
 				    return { its...};},
-							bufs...);
+							buf1, buf2, bufs...);
 	}; /* template <> aso::arr::merge() */
 
     }; /* namespace aso::arr */
