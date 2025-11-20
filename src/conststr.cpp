@@ -129,7 +129,7 @@ public:
     template <std::size_t size>
     std::array(const char[size]) -> std::array<const char, size>;
 
-
+#if 0
 //-->>-----------------------------------------------------------------------------------------------------------------
     constexpr int mpx_value() {
 	return 105; }
@@ -170,10 +170,12 @@ public:
 
 
 //<<-------------------------------------------------------------------------------------------------------------------
+#endif
 
 int main()
 {
 
+#if 0	// --- test rec
 	char tst_nm[] = "The test initialization string";
 
 	Tst_rec test_record1 = {"Initial string for testing"};
@@ -187,6 +189,7 @@ int main()
 	prn_tstrec(std::clog, test_record1);
 	prn_tstrec(std::clog, test_record2);
 	prn_tstrec(std::clog, test_record3);
+#endif
 
 
 
@@ -236,7 +239,6 @@ int main()
     std::clog << "[ Test the buffer merging to std::string_view ] ==> " << ssarr << std::endl;
 
 
-
     /*auto*/ std::array result_arr = aso::str::merge("ABC", ": ", name, "; ", "catenated", " - ", idt, "; ", "array set", " - ", "is ", reverse, " -- ", "Tracer", "!!!");
 
     std::clog << "[ static compile-time concatenation the const string test to std::array<> ] ==> " << result_arr.data() << std::endl;
@@ -246,17 +248,16 @@ int main()
 
     std::clog << "[ static compile-time concatenation the const string test with std::array ] ==> " << result_str << std::endl;
 
-    std::clog << "[ static compile-time concatenation the const string test to std::string_view ] ==> XXX " << result_str << std::endl;
+    std::clog << "[ static compile-time concatenation the const string test to std::string_view ] ==> XXX: " << result_str << std::endl;
 
 //	const std::array arr_prefix = std::to_array("The std::array string");
 //	const std::array arr_prefix = {'T','h','e',' ','s','t','d',':',':','a','r','r','a','y',' ','s','t','r','i','n','g'};
 //	std::array arr_prefix = aso::str::constcat("The std::array string");
 //	std::array arr_prefix = aso::arr::common("The std::array string");
-	std::array arr_prefix = aso::arr::genx("The std::array string");
+	std::array arr_prefix = aso::arr::gen("The std::array string");
 
 ////--->>>////    std::clog << "[ The std::array output ] ==> " << arr_prefix + " Testing operator +(const char(&)[])" << std::endl;
 //    std::clog << "[ The std::array output ] ==> " << arr_prefix + ": Testing the operator +(const char (&)[])" << std::endl;
-
 
 #if 0
     std::clog << "[ static compile-time concatenation const string with operator + ] ==> " << std::string_view("abc") + std::string_view("CDEt Getter") << std::endl;
