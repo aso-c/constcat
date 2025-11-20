@@ -34,35 +34,11 @@ namespace aso
 	template <class Act, typename TItem, std::size_t size, typename... Its>
 	constexpr auto splitter(Act&& action, const TItem (&buf)[size], Its...its)
 	{
-//	    std::clog << "Processing item " << size-1 << ": '" << (buf[size-1]? buf[size-1]: '.') << '\'' <<  std::endl;
 	    if constexpr (size > 1)
 		return splitter<Act, TItem, size-1, Its...>(std::forward<Act>(action), reinterpret_cast<const TItem (&)[size-1]>(buf), buf[size-1], its...);
 	    else
 		return action(buf[0], its...);
 	}; /* template <> splitter */
-
-
-
-#if 0
-/// Envelope for check the sizeof of the passed string buffers
-template <std::size_t sz, typename Item>
-struct testprn
-{
-    constexpr testprn(Item (&inbuf)[sz]): buf{inbuf} {};
-
-    constexpr std::ostream& operator ()(std::ostream& out) const {
-	return out << " \"" << buf << "\": sizeof: " << sizeof(buf) << " ,";
-    };
-
-    Item (&buf)[sz];
-};
-
-/// operator <<() for print to ostream object of the class testprn
-template <std::size_t sz, typename Item>
-std::ostream& operator << (std::ostream& out, const testprn<sz, Item> &tprn) {
-    return tprn(out);
-}
-#endif
 
 
 
@@ -83,8 +59,7 @@ std::ostream& operator << (std::ostream& out, const testprn<sz, Item> &tprn) {
 	template <class Act, typename Item, std::size_t sz>
 	constexpr auto chainsplit(Act act, const Item (&buf)[sz])
 	{
-  //	    std::clog << testprn(buf);
-	    return splitter(act,buf);
+  	    return splitter(act,buf);
     }; /* template <> chainsplit() */
 
 
@@ -97,7 +72,6 @@ std::ostream& operator << (std::ostream& out, const testprn<sz, Item> &tprn) {
 	// @tparam Act	  - type of the action executor, functor with template <...> operator()
 	// @tparam Item   - type of the array buffers 'buf' & 'bufs' items
 	// @tparam sz     - size of the first array buffer 'buf'
-//	// @tparam Bufs   - variadic pack of type parameters, that passed to procedure
 	// @tparam sizes  - variadic pack parameters, suzes of the arrays, that passed to procedure
 	//
 	// Parameters:
@@ -105,7 +79,7 @@ std::ostream& operator << (std::ostream& out, const testprn<sz, Item> &tprn) {
 	// @param[in]   buf   - reference to const array of the any size
 	// @param[in]   bufs  - variadic pack of reference to const arrays of the any sizes, that must be processed
 	template <class Act, typename Item, std::size_t sz, std::size_t... sizes>
-	constexpr auto chainsplit(Act&& act, const Item (&buf)[sz], const Item (&...bufs)[sizes] /*const Bufs&... bufs*/)
+	constexpr auto chainsplit(Act&& act, const Item (&buf)[sz], const Item (&...bufs)[sizes])
 	{
 //	    std::clog << testprn(buf);
 	    return chainsplit([act, &buf]<typename... Its>(Its... its) constexpr {
@@ -196,7 +170,6 @@ std::ostream& operator << (std::ostream& out, const testprn<sz, Item> &tprn) {
 	template <class Act, typename Item, std::size_t sz, std::size_t... sizes >
 	constexpr auto split(Act&& act, const Item (&buf)[sz], const  Item (&...bufs)[sizes])
 	{
-//	    std::clog << testprn(buf);
 	    /// drop the trailing string terminator of the buf
 	    return split([act, &buf]<typename... Its>(Its... its) constexpr
 				{ return arr::splitter(act, reinterpret_cast<const Item (&)[sz-1]>(buf), its...);},
@@ -223,7 +196,6 @@ std::ostream& operator << (std::ostream& out, const testprn<sz, Item> &tprn) {
 				{ return { its...};}, bufs...);
 	}; /* template <> aso::str::constcat() */
 
-
     }; /* namespace aso::str */
 
 }; /* namespace aso */
@@ -236,13 +208,6 @@ constexpr std::array<const char, sz1 + sz2 - 1> operator +(const std::array<cons
 {
     return aso::str::constcat<const char(&)[sz1], const char(&)[sz2]>(arr1.data(), buf2);
 };
-
-#if 0
-constexpr std::array<const char, 2> operator +(std::string_view str1, std::string_view str2)
-{
-    return {str1[0], str2[0]}/*aso::str::constcat(str1, str2)*/;
-}; /* template <Item, sz1, sz2> std::array<Item, sz1 + sz2 - 1> operator +(&str1, &str2) */
-#endif
 
 
 
