@@ -242,12 +242,12 @@ int main()
     std::clog << "Check the constcat:" << std::endl;
     std::clog << "to std::array<>:" << std::endl;
 
-    /*auto*/ std::array result_arr = aso::str::constcat("ABC", ": ", name, "; ", "catenated", " - ", idt, "; ", "array set", " - ", "is ", reverse, " -- ", "Tracer", "!!!");
+    /*auto*/ std::array result_arr = aso::str::merge("ABC", ": ", name, "; ", "catenated", " - ", idt, "; ", "array set", " - ", "is ", reverse, " -- ", "Tracer", "!!!");
 
     std::clog << "[ static compile-time concatenation the const string test to std::array<> ] ==> " << result_arr.data() << std::endl;
 
     std::clog << "to std::string_view:" << std::endl;
-    std::string_view result_str = aso::str::constcat("Its ", "a ", "std::string_view: ", name, " - ", "catenated", " - ", "from ", idt, " - ", "array set", " - ", "is ", "Tracer", "!!!").data();
+    std::string_view result_str = aso::str::merge("Its ", "a ", "std::string_view: ", name, " - ", "catenated", " - ", "from ", idt, " - ", "array set", " - ", "is ", "Tracer", "!!!").data();
 
     std::clog << "[ static compile-time concatenation the const string test with std::array ] ==> " << result_str << std::endl;
 
