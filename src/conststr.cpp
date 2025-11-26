@@ -3,7 +3,7 @@
 // Author      : Andrey Solomatov
 // Version     :
 // Copyright   : Copyright (c) aso by 07.11.25.
-// Last Updated:		      07.11.25.
+// Last Updated:		      20.11.25.
 // Description : Development static constexpr string concatenation
 //============================================================================
 

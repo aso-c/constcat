@@ -3,8 +3,8 @@
 // @author      : Andrey Solomatov (aso)
 // Copyright    : Copyright (c) aso by 17.11.25.
 // @date Created  07.11.2025
-//       Updated  20.11.2025
-// @version     : v.0.8.2(s)
+//       Updated  25.11.2025
+// @version     : v.0.8.2.1(s)
 // @description : Literally merging the ANSI-style strings into a generated std::array.
 //		  For various uses, such as initializing std::string_view.
 //		  Secuental implementation of the expansion of the array items values.
@@ -48,7 +48,7 @@ namespace aso
 	template <typename Item, std::size_t Sz>
 	constexpr auto gen(Item (&buf)[Sz])
 	{
-	    return generate([]<typename... Its>(Its... its) constexpr -> std::array<Item, sizeof...(its)> {
+	    return splitter([]<typename... Its>(Its... its) constexpr -> std::array<Item, sizeof...(its)> {
 					return { its...};},
 							     buf);
 	}; /* template <> aso::arr::gen() */
@@ -94,10 +94,15 @@ namespace aso
 	// Parameters:
 	// @param[in]	act   - type Act action parameter, that called at final string buffers parsing
 	// @param[in]   buf   - reference to const array of the any size
-	template <class Act, typename Item, std::size_t sz>
-	constexpr auto unwind(Act act, const Item (&buf)[sz])
+//	template <class Act, typename Item, std::size_t sz>
+//	constexpr auto unwind(Act act, const Item (&buf)[sz])
+//	{
+//	    return /*generate*/splitter(act, buf);
+//	}; /* template <> aso::arr::unwind() */
+	template <class Act>
+	constexpr auto unwind(Act act)
 	{
-	    return /*generate*/splitter(act, buf);
+	    return act();
 	}; /* template <> aso::arr::unwind() */
 
 
@@ -120,14 +125,14 @@ namespace aso
 	constexpr auto unwind(Act&& act, const Item (&buf)[sz], const Item (&...bufs)[sizes])
 	{
 	    return unwind([act, &buf]<typename... Its>(Its... its) constexpr {
-		//return generate(act, buf, its...);}, bufs...);
-		return splitter(act, buf, its...);}, bufs...);
+		return splitter(act, buf, its...);},
+					    bufs...);
 	}; /* template <> aso::arr::unwind() */
 
 
 
 	//!
-	// Template function "constcat" - create std::array object from the passed buffers of any type
+	// Template function "aso::arr::merge()" - create std::array object from the passed buffers of any type
 	//		(buffer may be not a string)
 	//
 	// Template parameters:
