@@ -4,7 +4,7 @@
 // Copyright    : Copyright (c) aso by 17.11.25.
 // @date Created  07.11.2025
 //       Updated  25.11.2025
-// @version     : v.0.8.2.1(s)
+// @version     : v.0.8.3(s)
 // @description : Literally merging the ANSI-style strings into a generated std::array.
 //		  For various uses, such as initializing std::string_view.
 //		  Secuental implementation of the expansion of the array items values.
@@ -82,31 +82,6 @@ namespace aso
 
 
 	//!
-	// Template function "aso::arr::unwind()" - operating with any string buffers
-	// and call splitter every buffer, that is passed into
-	// Terminal version with one string buffer for call a splitter
-	//
-	// Template parameters:
-	// @tparam Act	  - type of the action executor, functor with template <...> operator()
-	// @tparam Item   - type of the array buffer 'buf' items
-	// @tparam sz     - size of the array buffer 'buf'
-	//
-	// Parameters:
-	// @param[in]	act   - type Act action parameter, that called at final string buffers parsing
-	// @param[in]   buf   - reference to const array of the any size
-//	template <class Act, typename Item, std::size_t sz>
-//	constexpr auto unwind(Act act, const Item (&buf)[sz])
-//	{
-//	    return /*generate*/splitter(act, buf);
-//	}; /* template <> aso::arr::unwind() */
-	template <class Act>
-	constexpr auto unwind(Act act)
-	{
-	    return act();
-	}; /* template <> aso::arr::unwind() */
-
-
-	//!
 	// Template function "aso::arr::unwind()" - operating with set of any string buffers
 	// and call splitter every buffer, that is passed into this procedure
 	// Initial & intermediate version with with any numbers set of buffers
@@ -128,6 +103,23 @@ namespace aso
 		return splitter(act, buf, its...);},
 					    bufs...);
 	}; /* template <> aso::arr::unwind() */
+
+	//!
+	// Template function "aso::arr::unwind()" - operating with any string buffers:
+	// split every buffer that passed into it with the template procedure 'splitter()'.
+	// Terminal simple version without string buffer(s), only call the 'act' parameter.
+	//
+	// Template parameters:
+	// @tparam Act	  - type of the action executor, functor with template <...> operator()
+	//
+	// Parameters:
+	// @param[in]	act   - type Act action parameter, that called at final string buffers parsing
+	template <class Act>
+	constexpr auto unwind(Act act)
+	{
+	    return act();
+	}; /* template <> aso::arr::unwind() */
+
 
 
 
