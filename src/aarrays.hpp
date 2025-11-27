@@ -3,8 +3,8 @@
 // @author      : Andrey Solomatov (aso)
 // Copyright    : Copyright (c) aso by 17.11.25.
 // @date Created  07.11.2025
-//       Updated  25.11.2025
-// @version     : v.0.8.2(r)
+//       Updated  27.11.2025
+// @version     : v.0.8.3(r)
 // @description : Literally merging the ANSI-style strings into a generated std::array.
 //		  For various uses, such as initializing std::string_view.
 //		  Recursive implementation of the expansion of the array items values.
@@ -13,9 +13,17 @@
 #ifndef __AARRAYS_HPP__
 #define __AARRAYS_HPP__
 
+//#include <type_traits>
+#include <concepts>
 
 namespace aso
 {
+
+    template<class F, typename ...Args>
+    concept Callable = std::is_function<F(Args...)>::value;
+//    concept Functional = std::is_function_v<F(Args...)>;
+
+
     namespace arr
     {
 	//!
@@ -94,47 +102,22 @@ namespace aso
 
 
 	//!
-	// Template function "aso::arr::unwind()" - operating with any string buffers
-	// and call splitter every buffer, that is passed into
-	// Terminal version with one string buffer for call a splitter
-	//
-	// Template parameters:
-	// @tparam Act	  - type of the action executor, functor with template <...> operator()
-	// @tparam Item   - type of the array buffer 'buf' items
-	// @tparam sz     - size of the array buffer 'buf'
-	//
-	// Parameters:
-	// @param[in]	act   - type Act action parameter, that called at final string buffers parsing
-	// @param[in]   buf   - reference to const array of the any size
-//	template <class Act, typename Item, std::size_t sz>
-//	constexpr auto unwind(Act act, const Item (&buf)[sz])
-//	{
-//	    return /*generate*/splitter(act, buf);
-//	}; /* template <> aso::arr::unwind() */
-	template <class Act>
-	constexpr auto unwind(Act act)
-	{
-	    return act();
-	}; /* template <> aso::arr::unwind() */
-
-
-	//!
-	// Template function "aso::arr::unwind()" - operating with set of any string buffers
-	// and call splitter every buffer, that is passed into this procedure
+	// Template function "aso::arr::curry()" - unwind set of passed string buffers
+	// to sequential calls the splitter() function for every buffer individually.
 	// Initial & intermediate version with with any numbers set of buffers
 	//
 	// Template parameters:
 	// @tparam Act	  - type of the action executor, functor with template <...> operator()
 	// @tparam Item   - type of the array buffers 'buf' & 'bufs' items
 	// @tparam sz     - size of the first array buffer 'buf'
-	// @tparam sizes  - variadic pack parameters, suzes of the arrays, that passed to procedure
+	// @tparam sizes  - variadic pack parameters, sizes of the arrays, that passed to procedure
 	//
 	// Parameters:
 	// @param[in]	act   - type Act action parameter, that called at final string buffers parsing
 	// @param[in]   buf   - reference to const array of the any size
 	// @param[in]   bufs  - variadic pack of reference to const arrays of the any sizes, that must be processed
-	template <class Act, typename Item, std::size_t sz, std::size_t... sizes>
-	constexpr auto unwind(Act&& act, const Item (&buf)[sz], const Item (&...bufs)[sizes])
+	template </*class*/ /*Functional*/ Callable /*std::invocable*/ Act, typename Item, std::size_t sz, std::size_t... sizes>
+	constexpr auto curry(/*Act&&*/ const Act& act, const Item (&buf)[sz], const Item (&...bufs)[sizes])
 	{
 
 #if 0
@@ -169,10 +152,28 @@ namespace aso
 	/*	carry(act, carry_impl, buf, its...);	*/
 #endif		// end of the block currying as the lambda inner procedures, dev now is suspended till the other procedures dev is completed
 
-	    return unwind([act, &buf]<typename... Its>(Its... its) constexpr {
+	    return curry([act, &buf]<typename... Its>(Its... its) constexpr {
 		return splitter(act, buf, its...);},
 					    bufs...);
-	}; /* template <> aso::arr::unwind() */
+	}; /* template <> aso::arr::curry() */
+
+	//!
+	// Template function "aso::arr::curry()" - operating with any string buffers:
+	// split every buffer that passed into it with the template procedure 'splitter()'.
+	// Terminal simple version without string buffer(s), only call the 'act' parameter.
+	//
+	// Template parameters:
+	// @tparam Act	  - type of the action executor, functor with template <...> operator()
+	//
+	// Parameters:
+	// @param[in]	act   - type Act action parameter, that called at final string buffers parsing
+	template </*class*/ /*Functional*/ Callable /*std::invocable*/ Act>
+	constexpr auto curry(Act act)
+	{
+	    return act();
+	}; /* template <> aso::arr::curry() */
+
+
 
 
 	//!
@@ -188,8 +189,8 @@ namespace aso
 	template <typename It1, std::size_t Sz1, typename It2, std::size_t Sz2, std::size_t... Szs>
 	constexpr auto merge(It1 (&buf1)[Sz1], It2 (&buf2)[Sz2], auto (&...bufs)[Szs])
 	{
-	    return unwind([]<typename... Its>(Its... its) constexpr -> const std::array<std::common_type_t<Its...>, sizeof...(Its)> {
-				    return { its...};}/*gen*/,
+	    return curry([]<typename... Its>(Its... its) constexpr -> const std::array<std::common_type_t<Its...>, sizeof...(Its)> {
+				    return { its...};},
 							buf1, buf2, bufs...);
 	}; /* template <> aso::arr::merge() */
 
