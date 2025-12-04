@@ -3,8 +3,8 @@
 // @author      : Andrey Solomatov (aso)
 // Copyright    : Copyright (c) aso by 17.11.25.
 // @date Created  07.11.2025
-//       Updated  03.12.2025
-// @version     : v.0.8.5.2(r)
+//       Updated  04.12.2025
+// @version     : v.0.8.5.3(r)
 // @description : Literally merging the ANSI-style strings into a generated std::array.
 //		  For various uses, such as initializing std::string_view.
 //		  Recursive implementation of the expansion of the array items values.
@@ -29,7 +29,6 @@ namespace aso
 	//!
 	// Template function "aso::arr::splitter()" - split array into individual elements
 	// and returns resulting object by calling the action template procedure with all splitted items
-	//
 	//
 	// Template parameters:
 	// @tparam Act	  - type of the action executor, functor with template <...> operator()
@@ -76,6 +75,43 @@ namespace aso
 	//! Encloses the internal utilities for service purposes
 	namespace spec
 	{
+	    template <Callable Act, typename TItem, std::size_t size, typename... Its>
+	    constexpr auto yeld(const Act& action, const TItem *buf, Its...its);
+	    //!
+	    // Template function "aso::arr::yeld()" - split array into individual elements
+	    // and returns resulting object by calling the action template procedure with all splitted items
+	    //
+	    // Template parameters:
+	    // @tparam Act	  - type of the action executor, functor with template <...> operator()
+	    // @tparam TItem  - type the item of input array
+	    // @tparam size   - std::size_t, size of input array
+	    // @tparam ...Its - trailng variadic pack types of the splitted individual items from input buffer
+	    //
+	    // Parameters:
+	    // @param[in] action - type Act parameter with operator() or a lambda, named or anonymous
+	    // @param[in] buf	 - reference to const TItem array, with the "size" sizeof
+	    template <Callable Act, typename TItem, std::size_t size, typename... Its>
+	    constexpr auto yeld(const Act& action, const TItem (&buf)[size], Its...its)
+	    {
+		if constexpr (size > 1)
+		    //return yeld<Act, TItem, size-1, Its...>(std::forward<Act>(action), reinterpret_cast<const TItem (&)[size-1]>(buf), buf[size-1], its...);
+		    return yeld<Act, TItem, size-1, Its...>(action, buf+1, its..., buf[0]);
+//		    return gen(buf+1, items..., buf[0]);
+		else
+		    return action(/*buf[0],*/ its..., buf[0]);
+	    }; /* template <> aso::arr::yeld() */
+	    template <Callable Act, typename TItem, std::size_t size, typename... Its>
+	    constexpr auto yeld(const Act& action, const TItem *buf, Its...its)
+	    {
+		if constexpr (size > 1)
+		    //return yeld<Act, TItem, size-1, Its...>(std::forward<Act>(action), reinterpret_cast<const TItem (&)[size-1]>(buf), buf[size-1], its...);
+		    return yeld<Act, TItem, size-1, Its...>(action, buf+1, its..., buf[0]);
+//		    return gen(buf+1, items..., buf[0]);
+		else
+		    return action(/*buf[0],*/ its..., buf[0]);
+	    }; /* template <> aso::arr::spec::yeld() */
+
+
 	    //!
 	    // Template function "aso::arr::spec::emit()" - unwinds a set of passed string buffers
 	    // into separate parameters for calling the splitter() function in a recursive calls chain.
@@ -95,7 +131,8 @@ namespace aso
 	    constexpr auto emit(const Act& act, const Item (&buf)[sz], const Item (&...bufs)[sizes])
 	    {
 		return emit([act, &buf]<typename... Its>(Its... its) constexpr {
-			    return splitter(act, buf, its...);
+//			    return splitter(act, buf, its...);
+			    return yeld(act, buf, its...);
 			},
 			    bufs...);
 	    }; /* template <> aso::arr::spec::emit() */
@@ -202,7 +239,8 @@ namespace aso
 //		std::clog << testprn(buf);
 		/// drop the trailing string terminator of the buf
 		return emit([act, &buf]<typename... Its>(Its... its) constexpr {
-				return arr::splitter(act, reinterpret_cast<const Item (&)[sz-1]>(buf), its...);
+//				return arr::splitter(act, reinterpret_cast<const Item (&)[sz-1]>(buf), its...);
+				return arr::spec::yeld(act, reinterpret_cast<const Item (&)[sz-1]>(buf), its...);
 			    },
 				bufs...);
 	    }; /* template <> aso::str::spec::emit() */

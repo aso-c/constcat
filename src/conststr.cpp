@@ -230,6 +230,7 @@ int main()
     std::clog << "to std::array<>:" << std::endl;
 
 
+	std::array xarr = aso::arr::merge("a", "b");
 	const char aa[] = {'A', 'b', 'b', 'a'};
 	const char sp[] = { ' ', '-', ' '};
 	const char bb[] = "Bolding";
