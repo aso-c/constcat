@@ -3,8 +3,8 @@
 // @author      : Andrey Solomatov (aso)
 // Copyright    : Copyright (c) aso by 17.11.25.
 // @date Created  07.11.2025
-//       Updated  04.12.2025
-// @version     : v.0.8.5.4(r)
+//       Updated  05.12.2025
+// @version     : v.0.8.5.5(r)
 // @description : Literally merging the ANSI-style strings into a generated std::array.
 //		  For various uses, such as initializing std::string_view.
 //		  Recursive implementation of the expansion of the array items values.
@@ -72,7 +72,7 @@ namespace aso
 	}; /* template <> aso::arr::gen() */
 
 
-	//! Encloses the internal utilities for service purposes
+	//! Encloses the internal utilities for service purposes to array's manipulations
 	namespace spec
 	{
 	    //!
@@ -88,23 +88,19 @@ namespace aso
 	    // Parameters:
 	    // @param[in] action - type Act parameter with operator() or a lambda, named or anonymous
 	    // @param[in] buf	 - reference to const TItem array, with the "size" sizeof
-	    template <std::size_t size, typename TItem, Callable Act, typename... Its>
+	    template <std::size_t Offs, Callable Act, typename TItem, typename... Its>
 	    constexpr auto yeld(const Act& action, const TItem *buf, Its...its);
-	    template <std::size_t size, typename TItem, Callable Act, typename... Its>
-	    constexpr auto yeld(const Act& action, const TItem (&buf)[size], Its...its)
-	    {
-		if constexpr (size > 1)
-		    return yeld<size-1>(action, buf+1, its..., buf[0]);
-		else
-		    return action(its..., buf[0]);
+	    template <Callable Act, std::size_t Sz, typename TItem, typename... Its>
+	    constexpr auto yeld(const Act& action, const TItem (&buf)[Sz], Its...its) {
+		    return yeld<Sz>(action, buf, its...);
 	    }; /* template <> aso::arr::yeld() */
-	    template <std::size_t size, typename TItem, Callable Act, typename... Its>
+	    template <std::size_t Offs, Callable Act, typename TItem, typename... Its>
 	    constexpr auto yeld(const Act& action, const TItem *buf, Its...its)
 	    {
-		if constexpr (size > 1)
-		    return yeld<size-1>(action, buf+1, its..., buf[0]);
+		if constexpr (Offs > 0)
+		    return yeld<Offs-1>(action, buf, buf[Offs-1], its...);
 		else
-		    return action(its..., buf[0]);
+		    return action(its.../*, buf[0]*/);
 	    }; /* template <> aso::arr::spec::yeld() */
 
 
