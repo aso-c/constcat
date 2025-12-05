@@ -3,8 +3,8 @@
 // @author      : Andrey Solomatov (aso)
 // Copyright    : Copyright (c) aso by 17.11.25.
 // @date Created  07.11.2025
-//       Updated  03.12.2025
-// @version     : v.0.8.5.2(s)
+//       Updated  05.12.2025
+// @version     : v.0.8.5.3(s)
 // @description : Literally merging the ANSI-style strings into a generated std::array.
 //		  For various uses, such as initializing std::string_view.
 //		  Secuental implementation of the expansion of the array items values.
@@ -42,7 +42,7 @@ namespace aso
 	// @param[in]	actor - type Act parameter with operator() or a lambda, named or anonymous
 	// @param[in]   buf   - reference to const TItem array, with the "size" sizeof
 	template <Callable Act, typename TItem, std::size_t size, typename... Its>
-	constexpr auto splitter(const Act&/*&*/ action, const TItem (&buf)[size], Its...its);
+	constexpr auto splitter(const Act& action, const TItem (&buf)[size], Its...its);
 
 	/// Direct generation of the std::array from the C-style array - single array only version
 	template <typename Item, std::size_t Sz>
@@ -74,9 +74,10 @@ namespace aso
 
 
 
-	//! Encloses the internal utilities for service purposes
+	//! Contains the internal tools for manipulation with arrays
 	namespace spec
 	{
+#if 0
 	    //!
 	    // Template function "aso::arr::generate()" - create const std::array object from the passed
 	    //		C-style array buffer of any size (buffer may be is not a string)
@@ -103,7 +104,7 @@ namespace aso
 		    return std::array<const std::common_type_t<Item, Its...>, sizeof...(Its)+1>{buf[0], its...};
 		    // return act(buf[0], its...);
 	    }; /* template <> aso::arr::generate() */
-
+#endif
 
 	    //!
 	    // Template function "aso::arr::expand()" - execute the 'act' parameter with expanded buffer
@@ -179,33 +180,6 @@ namespace aso
 	    }; /* template <> aso::arr::spec::emit() */
 
 
-	    //!
-	    // Template function "aso::arr::spec::split()" - recursive implementation functionality of the
-	    // aso::arr::splitter() procedure with calculating index instead the buffer type cast in the
-	    // split process and returns resulting object by calling the action template procedure
-	    // with all splitted items; for using in the aso::arr::split() template procedure
-	    //
-	    // Template parameters:
-	    // @tparam Idx	  - index value in the current recursive call at the splitting sequence
-	    // @tparam Act	  - type of the action executor, functor with template <...> operator()
-	    // @tparam TItem  - type the item of input array
-	    // @tparam size   - std::size_t, size of input array
-	    //
-	    // @tparam ... Its - trailng variadic pack types of the splitted individual items from input buffer
-	    //
-	    // Parameters:
-	    // @param[in]	actor - type Act parameter with operator() or a lambda, named or anonymous
-	    // @param[in]   buf   - reference to const TItem array, with the "size" sizeof
-	    template <std::size_t Idx, Callable Act, typename TItem, std::size_t size, typename... Its>
-	    constexpr auto split(const Act& action, const TItem (&buf)[size], Its...its)
-	    {
-		if constexpr (size - Idx > 1)
-		    return split<Idx + 1/*, Act, TItem, size-1, Its...*/>(/*std::forward<Act>(*/action/*)*/, /*reinterpret_cast<const TItem (&)[size-1]>(*/buf/*)*/, buf[size-Idx-1], its...);
-		else
-		    return action(buf[0], its...);
-	    }; /* template <> aso::arr::spec::split() */
-
-
 	    /// Terminal simple version of the template function "aso::arr::emit()"
 	    /// All parameters similar as at the full version, except for dropped out.
 	    template <Callable Act_em>
@@ -215,6 +189,7 @@ namespace aso
 	    }; /* template <> aso::arr::spec::emit() */
 
 
+//#if 0
 	    //!
 	    // Template function "aso::arr::spec::curry()" - unwinds a set of passed string buffers
 	    // into separate parameters for calling the splitter() function in a recursive calls chain.
@@ -253,6 +228,34 @@ namespace aso
 	    {
 		return act();
 	    }; /* template <> aso::arr::spec::curry() */
+//#endif
+
+
+	    //!
+	    // Template function "aso::arr::spec::split()" - recursive implementation functionality of the
+	    // aso::arr::splitter() procedure with calculating index instead the buffer type cast in the
+	    // split process and returns resulting object by calling the action template procedure
+	    // with all splitted items; for using in the aso::arr::split() template procedure
+	    //
+	    // Template parameters:
+	    // @tparam Idx	  - index value in the current recursive call at the splitting sequence
+	    // @tparam Act	  - type of the action executor, functor with template <...> operator()
+	    // @tparam TItem  - type the item of input array
+	    // @tparam size   - std::size_t, size of input array
+	    //
+	    // @tparam ... Its - trailng variadic pack types of the splitted individual items from input buffer
+	    //
+	    // Parameters:
+	    // @param[in]	actor - type Act parameter with operator() or a lambda, named or anonymous
+	    // @param[in]   buf   - reference to const TItem array, with the "size" sizeof
+	    template <std::size_t Offs, Callable Act, typename TItem, /*std::size_t size,*/ typename... Its>
+	    constexpr auto split(const Act& action, const TItem /*(&*/*buf/*)[size]*/, Its...its)
+	    {
+		if constexpr /*(size - Offs > 1)*/(Offs > 0)
+		    return split<Offs /*+*/- 1>(action, buf, buf[/*size-*/Offs-1], its...);
+		else
+		    return action(/*buf[0],*/ its...);
+	    }; /* template <> aso::arr::spec::split() */
 
 	}; /* namespace aso::arr::spec */
 
@@ -281,92 +284,11 @@ namespace aso
 
 	/// Implementation of the template function "aso::arr::splitter()" - split array into individual elements
 	/// and returns resulting object by calling the action template procedure with all splitted items
-	template <Callable Act, typename TItem, std::size_t size, typename... Its>
-	constexpr auto splitter(const Act&/*&*/ action, const TItem (&buf)[size], Its...its)
+	template <Callable Act, typename TItem, std::size_t Sz, typename... Its>
+	constexpr auto splitter(const Act& action, const TItem (&buf)[Sz], Its...its)
 	{
-	    return spec::split<0>(/*std::forward<*/Act/*>*/(action), buf, its...);
+	    return spec::split<Sz>(Act(action), buf, its...);
 	}; /* template <> aso::arr::splitter() */
-
-
-
-#if 0	// Temporarily exclude index sequence using example
-	namespace detail
-	{
-	    // Non-constant value sequencer
-	    template<class TIt, std::size_t... idx>
-	    constexpr std::array<std::remove_cv_t<TIt>, sizeof...(idx)>
-	        sequencer(TIt (&a)[sizeof...(idx)], std::index_sequence<idx...>)
-	    {
-	        return {{a[idx]...}};
-	    }; /* sequencer() */
-
-	    // Constant-value sequencer
-	    template<class TIt, std::size_t... idx>
-	    constexpr std::array<TIt, sizeof...(idx)>
-	        csequencer(TIt (&a)[sizeof...(idx)], std::index_sequence<idx...>)
-	    {
-	        return {{a[idx]...}};
-	    }; /* csequencer() */
-	};
-
-	// May be - Sequencer | Sequenced & idxs 4 index_sequence?
-	/// (union) array & integral index sequence for it
-	template <typename TItem, std::size_t N, std::size_t...idx>
-	struct unit
-	{
-	    TItem (&data)[N];
-	    constexpr static std::size_t size = N;
-	    constexpr static std::index_sequence/*<idx...>*/ sequence = std::make_index_sequence<N>{};
-	}; /* unit */
-
-	// Constant-value sequencer
-	template<class TIt, std::size_t... idx>
-	constexpr std::array<TIt, sizeof...(idx)>
-	obtain(unit<TIt, sizeof...(idx), idx... > arrcmplx/*TIt (&a)[sizeof...(idx)], std::index_sequence<idx...>*/)
-	{
-	    return {{arrcmplx.data[idx]...}};
-	}; /* obtain() */
-
-
-	template <typename TItem, std::size_t... Ns>
-	struct generator
-	{
-	    constexpr static std::size_t size = (... + Ns);
-
-	    //struct
-
-	    std::array<TItem, size> seq();
-
-	    constexpr std::array<TItem, size> obtain(TItem (&...arrs)[Ns]);
-
-	}; /* template struct seq */
-
-
-	template<typename TItem, std::size_t N>
-	constexpr std::array<TItem, N> gen(TItem (&buf)[N])
-	{
-	    return detail::csequencer(buf, std::make_index_sequence<N>{});
-	    //return obtain({buf});
-	}; /* template <> aso::gen() */
-
-
-	namespace detail
-	{
-	    template<class T, std::size_t N, std::size_t... I>
-	    constexpr std::array<std::remove_cv_t<T>, N>
-	        to_array_impl(T (&&a)[N], std::index_sequence<I...>)
-	    {
-	        return {{std::move(a[I])...}};
-	    }
-	}
-
-	template<class T, std::size_t N>
-	constexpr std::array<std::remove_cv_t<T>, N> to_array(T (&&a)[N])
-	{
-	    return detail::to_array_impl(std::move(a), std::make_index_sequence<N>{});
-	}
-#endif	// end of temporarily exclude index sequence using example
-
 
     }; /* namespace aso::arr */
 
@@ -375,7 +297,7 @@ namespace aso
     namespace str
     {
 
-	//! Encloses the internal utilities for service purposes
+	//! Contains the internal tools for manipulation with strings
 	namespace spec
 	{
 
