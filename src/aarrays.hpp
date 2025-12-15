@@ -3,8 +3,8 @@
 // @author      : Andrey Solomatov (aso)
 // Copyright    : Copyright (c) aso by 17.11.25.
 // @date Created  07.11.2025
-//       Updated  05.12.2025
-// @version     : v.0.8.5.3(s)
+//       Updated  09.12.2025
+// @version     : v.0.8.5.5(s)
 // @description : Literally merging the ANSI-style strings into a generated std::array.
 //		  For various uses, such as initializing std::string_view.
 //		  Secuental implementation of the expansion of the array items values.
@@ -77,35 +77,34 @@ namespace aso
 	//! Contains the internal tools for manipulation with arrays
 	namespace spec
 	{
-#if 0
 	    //!
-	    // Template function "aso::arr::generate()" - create const std::array object from the passed
-	    //		C-style array buffer of any size (buffer may be is not a string)
+	    // Template function "aso::arr::spec::split()" - recursive implementation functionality of the
+	    // aso::arr::splitter() procedure with calculating index instead the buffer type cast in the
+	    // split process and returns resulting object by calling the action template procedure
+	    // with all splitted items; for using in the aso::arr::split() template procedure
 	    //
 	    // Template parameters:
+	    // @tparam Idx	  - index value in the current recursive call at the splitting sequence
 	    // @tparam Act	  - type of the action executor, functor with template <...> operator()
-	    // @tparam Item  -  type of input array items
-	    // @tparam Sz	  - std::size_t, size of input array
+	    // @tparam TItem  - type the item of input array
+	    // @tparam size   - std::size_t, size of input array
 	    //
 	    // @tparam ... Its - trailng variadic pack types of the splitted individual items from input buffer
 	    //
 	    // Parameters:
 	    // @param[in]	actor - type Act parameter with operator() or a lambda, named or anonymous
-	    // @param[in]   buf   - reference to C-style array with the "size" sizeof,
-	    //			that must be converted to std::array
-	    // @param[in]   its   - variadic parameters pack of the splitted individual items
-	    //			for adding to generated std::array
-	    template <class Act, typename Item, std::size_t Sz, typename... Its>
-	    constexpr std::array<const std::common_type_t<Item, Its...>, Sz+sizeof...(Its)> generate(Act&& act, Item (&buf)[Sz], Its...its)
+	    // @param[in]   buf   - reference to const TItem array, with the "size" sizeof
+	    template <std::size_t Offs, Callable Act, typename TItem, /*std::size_t size,*/ typename... Its>
+	    constexpr auto split(const Act& action, const TItem /*(&*/*buf/*)[size]*/, Its...its)
 	    {
-		if constexpr (Sz > 1)
-			return generate<Act, Item, Sz-1, Its...>(std::forward<Act>(act), reinterpret_cast<const Item (&)[Sz-1]>(buf), buf[Sz-1], its...);
+		if constexpr (!(Offs > 0))
+		    return action(its...);
 		else
-		    return std::array<const std::common_type_t<Item, Its...>, sizeof...(Its)+1>{buf[0], its...};
-		    // return act(buf[0], its...);
-	    }; /* template <> aso::arr::generate() */
-#endif
+		    return split<Offs - 1>(action, buf, buf[Offs-1], its...);
+	    }; /* template <> aso::arr::spec::split() */
 
+
+#if 0
 	    //!
 	    // Template function "aso::arr::expand()" - execute the 'act' parameter with expanded buffer
 	    //	    of the C-style array to individual items with std::index_sequence
@@ -127,27 +126,40 @@ namespace aso
 	    //			  that must be converted to std::array
 	    // @param[in] index_sequence<I...> - variadic parameters pack of the splitted individual items
 	    //			for adding to generated std::array
-	    template <Callable Act_exp, typename Item, std::size_t Sz, /*typename... Its*/ size_t... I>
-	    constexpr /*std::array<const std::common_type_t<Item, Its...>, Sz+sizeof...(Its)>*/
-	    auto expand(/*Act&&*/ Act_exp const &act_exp, Item (&buf)[Sz], std::index_sequence<I...>)
+	    template <Callable Act_exp, typename Item, std::size_t Sz, size_t... I>
+	    constexpr auto expand(Act_exp const &act_exp, Item (&buf)[Sz], std::index_sequence<I...>)
 	    {
 		return act_exp(buf[I]...);
 	    }; /* template <> aso::arr::spec::expand() */
+#endif
 
 
 	    //!
-	    // Template function "aso::arr::spec::yeld()" - expand passed buffer into pack of individual items &
-	    // merging it with previous items pack
-	    template <Callable Act_yeld, typename Item, std::size_t sz, typename... Items>
-	    constexpr auto yeld(const Act_yeld& act_yeld, const Item (&buf)[sz], const Items ...oldits)
+	    // Template function "aso::arr::spec::yeld()" - distribute passed buffer into pack
+	    // of individual items & merging it with previous items pack with std::sequence.
+	    // Discard dedicated 'expand()' procedure
+	    //
+	    //	    Usage:
+	    // @code
+	    //		yeld(action, buffer, make_index_sequence<N>());
+	    // @endcode
+	    // Template parameters:
+	    // @tparam Act   - type of the action executor, functor with template <...> operator()
+	    // @tparam Item  - type of input array items
+	    // @tparam Sz    - std::size_t, size of input array
+	    // @tparam ...I  - variadic parameter pack std::size index sequence
+	    //
+	    // Parameters:
+	    // @param[in] dispose - parameter of the 'Act' callable type with operator() or a lambda,
+	    //				named or anonymous;
+	    // @param[in] buf	  - reference to C-style array with the "size" sizeof,
+	    //				that must be converted to std::array;
+	    // @param[in] index_sequence<I...> - variadic parameters pack indexes for the split array buffer
+	    //				to the individual items for adding to generated std::array;
+	    template <Callable Act, typename Item, std::size_t sz, std::size_t... I>
+	    constexpr auto yeld(const Act& deploy, const Item (&buf)[sz], std::index_sequence<I...>)
 	    {
-//		if constexpr (size > 1)
-//		    return splitter<Act, TItem, size-1, Its...>(std::forward<Act>(action), reinterpret_cast<const TItem (&)[size-1]>(buf), buf[size-1], its...);
-//		else
-//		    return action(buf[0], its...);
-		return expand([act_yeld, oldits...] <typename... Its>(Its... its) constexpr {
-		    return act_yeld(its..., oldits...);
-		}, buf, std::make_index_sequence<sz>());
+		return deploy(buf[I]...);
 	    }; /* template <> aso::arr::spec::yeld() */
 
 
@@ -157,28 +169,30 @@ namespace aso
 	    // Initial and intermediate versions with an any number of buffers.
 	    //
 	    // Template parameters:
-	    // @tparam Act	  - type of the action executor, functor with template <...> operator()
+	    // @tparam Act    - type of the action executor, functor with template <...> operator()
 	    // @tparam Item   - type of the array buffers 'buf' & 'bufs' items
 	    // @tparam sz     - size of the first array buffer 'buf'
 	    // @tparam sizes  - variadic pack parameters, sizes of the arrays, that passed to procedure
+	    // @tparam NxIts  - next items type variadic pack, that will be passed to the outer level lambda
+	    //			at the next buffers expanding
+	    // @tparam Its    - current buffer expansion type variadic pack, that passed by the inner level lambda
+	    //			to the act
 	    //
 	    // Parameters:
-	    // @param[in]	act   - type Act action parameter, that called at final string buffers parsing
-	    // @param[in]   buf   - reference to const array of the any size
-	    // @param[in]   bufs  - variadic pack of reference to const arrays of the any sizes, that must be processed
-	    template <Callable Act_em, typename Item, std::size_t sz, std::size_t... sizes>
-	    constexpr auto emit(const Act_em& act_em, const Item (&buf)[sz], const Item (&...bufs)[sizes])
+	    // @param[in] act   - type Act action parameter, that called at final string buffers parsing
+	    // @param[in] buf   - reference to const array of the any size
+	    // @param[in] bufs  - variadic pack of reference to const arrays of the any sizes, that must be processed
+	    // @param[in] nxits - variadic parameters pack of the distributed individual items of the current array buff
+	    //			  for passing to inner lambda in the yeld() expanding buffer procedure
+	    template <Callable Act, typename Item, std::size_t sz, std::size_t... sizes>
+	    constexpr auto emit(const Act& act, const Item (&buf)[sz], const Item (&...bufs)[sizes])
 	    {
-		return emit([act_em, &buf]<typename... Its>(Its... its) constexpr {
-			    return yeld(act_em, buf, its...);
-			},
-			    bufs...);
-//		return yeld([act_em, &bufs]<typename... Its>(Its... its) constexpr {
-//			    return yeld(act_em, buf, its...);
-//			},
-//			    bufs...);
+		return emit([act, &buf]<typename... NxIts>(NxIts... nxits) constexpr {
+			    return yeld([act, nxits...]<typename... Its>(Its... its) constexpr {
+				return act(its..., nxits...);
+			    }, buf, std::make_index_sequence<sz>());
+			}, bufs...);
 	    }; /* template <> aso::arr::spec::emit() */
-
 
 	    /// Terminal simple version of the template function "aso::arr::emit()"
 	    /// All parameters similar as at the full version, except for dropped out.
@@ -187,75 +201,6 @@ namespace aso
 	    {
 		return act_em();
 	    }; /* template <> aso::arr::spec::emit() */
-
-
-//#if 0
-	    //!
-	    // Template function "aso::arr::spec::curry()" - unwinds a set of passed string buffers
-	    // into separate parameters for calling the splitter() function in a recursive calls chain.
-	    // Initial and intermediate versions with an aany number of buffers.
-	    //
-	    // Template parameters:
-	    // @tparam Act	  - type of the action executor, functor with template <...> operator()
-	    // @tparam Item   - type of the array buffers 'buf' & 'bufs' items
-	    // @tparam sz     - size of the first array buffer 'buf'
-	    // @tparam sizes  - variadic pack parameters, sizes of the arrays, that passed to procedure
-	    //
-	    // Parameters:
-	    // @param[in]	act   - type Act action parameter, that called at final string buffers parsing
-	    // @param[in]   buf   - reference to const array of the any size
-	    // @param[in]   bufs  - variadic pack of reference to const arrays of the any sizes, that must be processed
-	    template <Callable Act, typename Item, std::size_t sz, std::size_t... sizes>
-	    constexpr auto curry(const Act& act, const Item (&buf)[sz], const Item (&...bufs)[sizes])
-	    {
-		return curry([act, &buf]<typename... Its>(Its... its) constexpr {
-			    return splitter(act, buf, its...);
-			},
-			    bufs...);
-	    }; /* template <> aso::arr::spec::curry() */
-
-	    //!
-	    // Terminal simple version of the template function "aso::arr::curry()" without
-	    // string buffer(s), only call the 'act' parameter.
-	    //
-	    // Template parameters:
-	    // @tparam Act	  - type of the action executor, functor with template <...> operator()
-	    //
-	    // Parameters:
-	    // @param[in]	act   - type Act action parameter, that called at final string buffers parsing
-	    template <Callable Act>
-	    constexpr auto curry(Act act)
-	    {
-		return act();
-	    }; /* template <> aso::arr::spec::curry() */
-//#endif
-
-
-	    //!
-	    // Template function "aso::arr::spec::split()" - recursive implementation functionality of the
-	    // aso::arr::splitter() procedure with calculating index instead the buffer type cast in the
-	    // split process and returns resulting object by calling the action template procedure
-	    // with all splitted items; for using in the aso::arr::split() template procedure
-	    //
-	    // Template parameters:
-	    // @tparam Idx	  - index value in the current recursive call at the splitting sequence
-	    // @tparam Act	  - type of the action executor, functor with template <...> operator()
-	    // @tparam TItem  - type the item of input array
-	    // @tparam size   - std::size_t, size of input array
-	    //
-	    // @tparam ... Its - trailng variadic pack types of the splitted individual items from input buffer
-	    //
-	    // Parameters:
-	    // @param[in]	actor - type Act parameter with operator() or a lambda, named or anonymous
-	    // @param[in]   buf   - reference to const TItem array, with the "size" sizeof
-	    template <std::size_t Offs, Callable Act, typename TItem, /*std::size_t size,*/ typename... Its>
-	    constexpr auto split(const Act& action, const TItem /*(&*/*buf/*)[size]*/, Its...its)
-	    {
-		if constexpr /*(size - Offs > 1)*/(Offs > 0)
-		    return split<Offs /*+*/- 1>(action, buf, buf[/*size-*/Offs-1], its...);
-		else
-		    return action(/*buf[0],*/ its...);
-	    }; /* template <> aso::arr::spec::split() */
 
 	}; /* namespace aso::arr::spec */
 
@@ -275,7 +220,7 @@ namespace aso
 	template <typename It1, std::size_t Sz1, typename It2, std::size_t Sz2, std::size_t... Szs>
 	constexpr auto merge(It1 (&buf1)[Sz1], It2 (&buf2)[Sz2], auto (&...bufs)[Szs])
 	{
-	    return spec::/*emit*/curry([]<typename... Its>(Its... its) constexpr -> const std::array<std::common_type_t<Its...>, sizeof...(Its)> {
+	    return spec::emit([]<typename... Its>(Its... its) constexpr -> const std::array<std::common_type_t<Its...>, sizeof...(Its)> {
 				    return { its...};
 				},
 				    buf1, buf2, bufs...);
@@ -343,7 +288,7 @@ namespace aso
 	    }; /* template <> aso::str::spec::curry(act) */
 
 
-
+#if 0
 	    //!
 	    // Template function "aso::str::spec::yeld()" - expand passed string buffer into pack
 	    // of individual chars, drop terminal char & merging it with previous chars pack
@@ -354,6 +299,7 @@ namespace aso
 		    return act_yeld(its..., items...);
 		}, buf, std::make_index_sequence<sz-1>());
 	    }; /* template <> aso::str::spec::yeld() */
+#endif
 
 
 	    //!
@@ -371,14 +317,16 @@ namespace aso
 	    // @param[in]	act   - type Act action parameter, that called at final string buffers parsing
 	    // @param[in]   buf   - reference to const array of the any size
 	    // @param[in]   bufs  - variadic pack of reference to const arrays of the any sizes, that must be processed
-	    template <Callable Act_em, typename Item, std::size_t sz, std::size_t... sizes>
-	    constexpr auto emit(const Act_em& act_em, const Item (&buf)[sz], const Item (&...bufs)[sizes])
+	    template <Callable Act, typename Item, std::size_t sz, std::size_t... sizes>
+	    constexpr auto emit(const Act& act, const Item (&buf)[sz], const Item (&...bufs)[sizes])
 	    {
-		return emit([act_em, &buf]<typename... Its>(Its... its) constexpr {
-			    return yeld(act_em, buf, its...);
-			},
-			    bufs...);
-//		return yeld([act_em, &bufs]<typename... Its>(Its... its) constexpr {
+		return emit([act, &buf]<typename... NxIts>(NxIts... nxits) constexpr {
+			    return arr::spec::yeld([act, nxits...]<typename... Its>(Its... its) constexpr {
+				return act(its..., nxits...);
+			    }, buf, std::make_index_sequence<sz-1>());
+			}, bufs...);
+
+//		return emit([act_em, &buf]<typename... Its>(Its... its) constexpr {
 //			    return yeld(act_em, buf, its...);
 //			},
 //			    bufs...);
@@ -409,7 +357,7 @@ namespace aso
 	template <typename Item, std::size_t... sizes>
 	constexpr auto merge(const Item (&...bufs)[sizes])
 	{
-	    return spec::curry/*emit*/([]<typename... Its>(Its... its) constexpr -> const std::array<std::common_type_t<Its...>, sizeof...(Its)+1>
+	    return spec::/*curry*/emit([]<typename... Its>(Its... its) constexpr -> const std::array<std::common_type_t<Its...>, sizeof...(Its)+1>
 				{ return { its..., '\0'};}, bufs...);
 	}; /* template <> aso::str::merge() */
 
