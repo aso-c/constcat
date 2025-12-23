@@ -3,8 +3,8 @@
 // @author      : Andrey Solomatov (aso)
 // Copyright    : Copyright (c) aso by 17.11.25.
 // @date Created  07.11.2025
-//       Updated  09.12.2025
-// @version     : v.0.8.5.5(s)
+//       Updated  16.12.2025
+// @version     : v.0.8.5.6(s)
 // @description : Literally merging the ANSI-style strings into a generated std::array.
 //		  For various uses, such as initializing std::string_view.
 //		  Secuental implementation of the expansion of the array items values.
@@ -13,6 +13,8 @@
 #ifndef __AARRAYS_HPP__
 #define __AARRAYS_HPP__
 
+#include <concepts>
+
 
 namespace aso
 {
@@ -20,12 +22,38 @@ namespace aso
     // The Callable concept - determines a callable object, like a function
     template<class F, typename ...Args>
     concept Callable = std::is_function<F(Args...)>::value;
-//    concept Callable = std::is_function_v<F(Args...)>;
+//    /*concept Callable =*/ std::is_function_v<F(Args...)>;
+//    /*concept Callable =*/ std::is_invocable<F, Args...>::value;
+//    /*concept Callable =*/ std::invocable<F, Args...>;
 
 
     //! utilities for manipulating with std::array objects & other kind of buffers
     namespace arr
     {
+
+	// TODO Concept Storable (?) Contents (?)  for items of array - is copyable with constexpr/consteval copy expression
+	// TODO concept Contents <Temporarily> declared as [true], need be corrected
+	template<typename T>
+//	concept Contents = std::copyable<T> /*(or semiregular<T> or regular<T>???)*/;
+	concept Contents = std::copyable<std::remove_pointer_t<std::decay_t<T>>> /*(or semiregular<T> or regular<T>???)*/;
+	 //either<std::remove_cvref_t<std::remove_pointer_t<std::decay_t<T>>>, char, wchar_t>;
+
+	// TODO Concept Buffers: buffers, that is is ANSI C array or std::array of Contents
+	// TODO concept Buffers <temporarily> declared as [true], need be corrected
+	template<std::size_t N, typename B, typename T>
+	concept Buffers = Contents<T> && (std::same_as<B, const T[N]> || std::same_as<B, std::array<const T, N>>);
+
+	// TODO concept PointeredBuffer - pointer to const ANSI C array of const items (Contents)
+	template<typename P, typename T> /*requires Contents<T>*/
+	concept PointeredBuffer = Contents<T> && std::same_as<P, const T*>;
+
+	// TODO concept Conjuctable - elements, that may be merged - individual items Contents or Buffers
+	// TODO concept Conjuctable <temporarily> declared as [true], need be corrected
+	template<std::size_t N, typename C, typename T>
+	concept Conjuctable = Contents<T> && (std::same_as<C, T> || Buffers<N, C, T>);
+
+
+
 	//!
 	// Template function "aso::arr::splitter()" - split array into individual elements
 	// and returns resulting object by calling the action template procedure with all splitted items
@@ -94,8 +122,8 @@ namespace aso
 	    // Parameters:
 	    // @param[in]	actor - type Act parameter with operator() or a lambda, named or anonymous
 	    // @param[in]   buf   - reference to const TItem array, with the "size" sizeof
-	    template <std::size_t Offs, Callable Act, typename TItem, /*std::size_t size,*/ typename... Its>
-	    constexpr auto split(const Act& action, const TItem /*(&*/*buf/*)[size]*/, Its...its)
+	    template <std::size_t Offs, Callable Act, typename TItem, /*size_t size,*/ typename... Its>
+	    constexpr auto split(const Act& action, const TItem *buf, Its...its)
 	    {
 		if constexpr (!(Offs > 0))
 		    return action(its...);
@@ -104,7 +132,6 @@ namespace aso
 	    }; /* template <> aso::arr::spec::split() */
 
 
-#if 0
 	    //!
 	    // Template function "aso::arr::expand()" - execute the 'act' parameter with expanded buffer
 	    //	    of the C-style array to individual items with std::index_sequence
@@ -115,23 +142,24 @@ namespace aso
 	    // @endcode
 	    //
 	    // Template parameters:
-	    // @tparam Act   - type of the action executor, functor with template <...> operator()
-	    // @tparam Item  - type of input array items
-	    // @tparam Sz    - std::size_t, size of input array
-	    // @tparam ...I  - variadic parameter pack std::size index sequence
+	    // @tparam Deployment - type of the action executor, functor with template <...> operator()
+	    // @tparam Item	  - type of input array items
+	    // @tparam Sz	  - std::size_t, size of input array
+	    // @tparam ...I	  - variadic parameter pack std::size index sequence
 	    //
 	    // Parameters:
-	    // @param[in] actor	- type Act parameter with operator() or a lambda, named or anonymous
+	    // @param[in] deploy  - type Deployment calling parameter - functor with variadic operator()
+	    //			   or a lambda, named or anonymous;
 	    // @param[in] buf	- reference to C-style array with the "size" sizeof,
 	    //			  that must be converted to std::array
 	    // @param[in] index_sequence<I...> - variadic parameters pack of the splitted individual items
 	    //			for adding to generated std::array
-	    template <Callable Act_exp, typename Item, std::size_t Sz, size_t... I>
-	    constexpr auto expand(Act_exp const &act_exp, Item (&buf)[Sz], std::index_sequence<I...>)
+	    template <Callable Deployment, Contents Item, std::size_t Sz, size_t... I>
+	    constexpr /*std::array<const std::common_type_t<Item, Its...>, Sz+sizeof...(Its)>*/
+	    auto distrib(Deployment const &deploy, Item (&buf)[Sz], std::index_sequence<I...>)
 	    {
-		return act_exp(buf[I]...);
-	    }; /* template <> aso::arr::spec::expand() */
-#endif
+		return deploy(buf[I]...);
+	    }; /* template <> aso::arr::spec::distrib() */
 
 
 	    //!
@@ -156,10 +184,14 @@ namespace aso
 	    //				that must be converted to std::array;
 	    // @param[in] index_sequence<I...> - variadic parameters pack indexes for the split array buffer
 	    //				to the individual items for adding to generated std::array;
-	    template <Callable Act, typename Item, std::size_t sz, std::size_t... I>
-	    constexpr auto yeld(const Act& deploy, const Item (&buf)[sz], std::index_sequence<I...>)
+//	    template <Callable Act, typename Item, std::size_t sz, std::size_t... I>
+//	    constexpr auto yeld(const Act& deploy, const Item (&buf)[sz], std::index_sequence<I...>)
+	    template <Callable Act_yeld, Contents Item, std::size_t sz, typename... Items>
+	    constexpr auto yeld(const Act_yeld& act_yeld, const Item (&buf)[sz], const Items ...oldits)
 	    {
-		return deploy(buf[I]...);
+		return distrib([act_yeld, oldits...] <typename... Its>(Its... its) constexpr {
+		    return act_yeld(its..., oldits...);
+		}, buf, std::make_index_sequence<sz>());
 	    }; /* template <> aso::arr::spec::yeld() */
 
 
@@ -184,14 +216,18 @@ namespace aso
 	    // @param[in] bufs  - variadic pack of reference to const arrays of the any sizes, that must be processed
 	    // @param[in] nxits - variadic parameters pack of the distributed individual items of the current array buff
 	    //			  for passing to inner lambda in the yeld() expanding buffer procedure
-	    template <Callable Act, typename Item, std::size_t sz, std::size_t... sizes>
+	    template <Callable Act, /*typename*/Contents Item, std::size_t sz, std::size_t... sizes>
 	    constexpr auto emit(const Act& act, const Item (&buf)[sz], const Item (&...bufs)[sizes])
 	    {
-		return emit([act, &buf]<typename... NxIts>(NxIts... nxits) constexpr {
-			    return yeld([act, nxits...]<typename... Its>(Its... its) constexpr {
-				return act(its..., nxits...);
-			    }, buf, std::make_index_sequence<sz>());
-			}, bufs...);
+//		return emit([act, &buf]<typename... NxIts>(NxIts... nxits) constexpr {
+//			    return yeld([act, nxits...]<typename... Its>(Its... its) constexpr {
+//				return act(its..., nxits...);
+//			    }, buf, std::make_index_sequence<sz>());
+//			}, bufs...);
+		return emit([act, &buf]<typename... Its>(Its... its) constexpr {
+			    return yeld(act, buf, its...);
+			},
+			    bufs...);
 	    }; /* template <> aso::arr::spec::emit() */
 
 	    /// Terminal simple version of the template function "aso::arr::emit()"
@@ -217,7 +253,7 @@ namespace aso
 	// Parameters:
 	// @param[in]   bufs  - variadic parameters pack of reference to set of the const C-style string buffers,
 	//		that must be concatenated
-	template <typename It1, std::size_t Sz1, typename It2, std::size_t Sz2, std::size_t... Szs>
+	template </*typename*/Contents It1, std::size_t Sz1, /*typename*/Contents It2, std::size_t Sz2, std::size_t... Szs>
 	constexpr auto merge(It1 (&buf1)[Sz1], It2 (&buf2)[Sz2], auto (&...bufs)[Szs])
 	{
 	    return spec::emit([]<typename... Its>(Its... its) constexpr -> const std::array<std::common_type_t<Its...>, sizeof...(Its)> {
@@ -242,64 +278,42 @@ namespace aso
     namespace str
     {
 
+	// TODO Concept for string items - is Chars8, Chars16 or Chars32 (?) and other needed items
+	//	Chars8:  char, [char8_t - since C++20,] signed char, unsigned char;
+	template<typename T>
+	concept BasicChars = std::same_as<std::remove_pointer_t<std::decay_t<T>>, char> ||
+			std::same_as<std::remove_pointer_t<std::decay_t<T>>, signed char> ||
+			std::same_as<std::remove_pointer_t<std::decay_t<T>>, unsigned char>;
+	template<typename T>
+	concept BasicChars2 = requires {
+	    requires std::same_as<std::remove_pointer_t<std::decay_t<T>>, char> ||
+			std::same_as<std::remove_pointer_t<std::decay_t<T>>, signed char> ||
+			std::same_as<std::remove_pointer_t<std::decay_t<T>>, unsigned char>;
+	};
+	 //  Concept for string items - extra chars - char16_t, 32_t, wchar_t
+	template<typename T>
+	concept ExtraChars = std::same_as<std::remove_pointer_t<std::decay_t<T>>, char8_t> ||
+			std::same_as<std::remove_pointer_t<std::decay_t<T>>, char16_t> ||
+			std::same_as<std::remove_pointer_t<std::decay_t<T>>, char32_t> ||
+			std::same_as<std::remove_pointer_t<std::decay_t<T>>, wchar_t>;
+//	// Concept Chars ::= Chars8 || Chars16 || Chars32 || Wchars
+	template<typename T>
+	concept Chars = BasicChars<T> || ExtraChars<T>;
+	// TODO Concept Strings: is arr::Buffers with string items or a pointer to const items
+
 	//! Contains the internal tools for manipulation with strings
 	namespace spec
 	{
-
-	    //!
-	    // Template function "aso::str::spec::curry()" - unwinds a set of passed string buffers
-	    // into separate parameters for calling the splitter() function in a recursive calls chain.
-	    // Initial and intermediate versions with an aany number of buffers.
-	    //
-	    // Template parameters:
-	    // @tparam Act	  - type of the action executor, functor with template <...> operator()
-	    // @tparam Item   - type of the array buffers - the 'buf' & the 'bufs' items
-	    // @tparam sz     - size of the first array buffer 'buf'
-	    // @tparam sizes  - variadic template pack sizes of the buffers, that passed to procedure
-	    //
-	    // Parameters:
-	    // @param[in]	act   - type Act action parameter, that called at final string buffers parsing
-	    // @param[in]   buf   - reference to const array of the any size
-	    // @param[in]   bufs  - variadic pack of reference to const arrays of the any sizes, that must be processed
-	    template <Callable Act, typename Item, std::size_t sz, std::size_t... sizes >
-	    constexpr auto curry(Act&& act, const Item (&buf)[sz], const  Item (&...bufs)[sizes])
-	    {
-//		std::clog << testprn(buf);
-		/// drop the trailing string terminator of the buf
-		return curry([act, &buf]<typename... Its>(Its... its) constexpr {
-				return arr::splitter(act, reinterpret_cast<const Item (&)[sz-1]>(buf), its...);
-			    },
-				bufs...);
-	    }; /* template <> aso::str::spec::curry() */
-
-	    //!
-	    // Terminal simple version of the template function "aso::str::spec::curry()" without
-	    // string buffer(s), only call the 'act' parameter.
-	    //
-	    // Template parameters:
-	    // @tparam Act	  - type of the action executor, functor with template <...> operator()
-	    //
-	    // Parameters:
-	    // @param[in]	act   - type Act action parameter, that called at final string buffers parsing
-	    template <Callable Act>
-	    constexpr auto curry(Act act)
-	    {
-		return act();
-	    }; /* template <> aso::str::spec::curry(act) */
-
-
-#if 0
 	    //!
 	    // Template function "aso::str::spec::yeld()" - expand passed string buffer into pack
 	    // of individual chars, drop terminal char & merging it with previous chars pack
 	    template <Callable Act_yeld, typename Item, std::size_t sz, typename... Items>
 	    constexpr auto yeld(const Act_yeld& act_yeld, const Item (&buf)[sz], const Items ...items)
 	    {
-		return arr::spec::expand([act_yeld, items...] <typename... Its>(Its... its) constexpr {
+		return arr::spec::distrib([act_yeld, items...] <typename... Its>(Its... its) constexpr {
 		    return act_yeld(its..., items...);
 		}, buf, std::make_index_sequence<sz-1>());
 	    }; /* template <> aso::str::spec::yeld() */
-#endif
 
 
 	    //!
@@ -320,16 +334,10 @@ namespace aso
 	    template <Callable Act, typename Item, std::size_t sz, std::size_t... sizes>
 	    constexpr auto emit(const Act& act, const Item (&buf)[sz], const Item (&...bufs)[sizes])
 	    {
-		return emit([act, &buf]<typename... NxIts>(NxIts... nxits) constexpr {
-			    return arr::spec::yeld([act, nxits...]<typename... Its>(Its... its) constexpr {
-				return act(its..., nxits...);
-			    }, buf, std::make_index_sequence<sz-1>());
-			}, bufs...);
-
-//		return emit([act_em, &buf]<typename... Its>(Its... its) constexpr {
-//			    return yeld(act_em, buf, its...);
-//			},
-//			    bufs...);
+		return emit([act, &buf]<typename... Its>(Its... its) constexpr {
+			    return yeld(act, buf, its...);
+			},
+			    bufs...);
 	    }; /* template <> aso::str::spec::emit() */
 
 	    /// Terminal simple version of the template function "aso::arr::emit()"
@@ -357,9 +365,11 @@ namespace aso
 	template <typename Item, std::size_t... sizes>
 	constexpr auto merge(const Item (&...bufs)[sizes])
 	{
-	    return spec::/*curry*/emit([]<typename... Its>(Its... its) constexpr -> const std::array<std::common_type_t<Its...>, sizeof...(Its)+1>
+	    return spec::emit([]<typename... Its>(Its... its) constexpr -> const std::array<std::common_type_t<Its...>, sizeof...(Its)+1>
 				{ return { its..., '\0'};}, bufs...);
 	}; /* template <> aso::str::merge() */
+
+	//TODO implement operator+ for std::array of Chars and Conjuctable of Chars, returned std::array of Chars
 
     }; /* namespace aso::str */
 
