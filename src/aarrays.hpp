@@ -3,8 +3,8 @@
 // @author      : Andrey Solomatov (aso)
 // Copyright    : Copyright (c) aso by 17.11.25.
 // @date Created  07.11.2025
-//       Updated  16.12.2025
-// @version     : v.0.8.5.6(s)
+//       Updated  24.12.2025
+// @version     : v.0.8.5.7(s)
 // @description : Literally merging the ANSI-style strings into a generated std::array.
 //		  For various uses, such as initializing std::string_view.
 //		  Secuental implementation of the expansion of the array items values.
@@ -31,114 +31,44 @@ namespace aso
     namespace arr
     {
 
-	// TODO Concept Storable (?) Contents (?)  for items of array - is copyable with constexpr/consteval copy expression
-	// TODO concept Contents <Temporarily> declared as [true], need be corrected
+	// Constrains for storable contents of arrays - is copyable with constexpr/consteval copy expression
+	// and/or regular of semiregular
 	template<typename T>
-//	concept Contents = std::copyable<T> /*(or semiregular<T> or regular<T>???)*/;
-	concept Contents = std::copyable<std::remove_pointer_t<std::decay_t<T>>> /*(or semiregular<T> or regular<T>???)*/;
-	 //either<std::remove_cvref_t<std::remove_pointer_t<std::decay_t<T>>>, char, wchar_t>;
+	concept Contents = /*std::copyable<std::remove_pointer_t<std::decay_t<T>>>*/
+			    std::regular<std::remove_pointer_t<std::decay_t<T>>>;
 
-	// TODO Concept Buffers: buffers, that is is ANSI C array or std::array of Contents
-	// TODO concept Buffers <temporarily> declared as [true], need be corrected
+	// Constrains for std::array buffers:
 	template<std::size_t N, typename B, typename T>
-	concept Buffers = Contents<T> && (std::same_as<B, const T[N]> || std::same_as<B, std::array<const T, N>>);
+	concept ArrBuffers = Contents<T> && std::same_as<B, std::array<const T, N>>;
 
-	// TODO concept PointeredBuffer - pointer to const ANSI C array of const items (Contents)
+	// Constrains for ANSI C array buffers:
+	template<std::size_t N, typename B, typename T>
+	concept CBuffers = Contents<T> && std::same_as<B, const T[N]>;
+
+	// Constrains PtrBuffer - pointer to const ANSI C array of const items (Contents)
 	template<typename P, typename T> /*requires Contents<T>*/
-	concept PointeredBuffer = Contents<T> && std::same_as<P, const T*>;
+	concept PtrBuffers = Contents<T> && std::same_as<P, const T*>;
+
+	// Concept Buffers: buffers, that is is ANSI C array or std::array of Contents
+	template<std::size_t N, typename B, typename T>
+	concept Buffers = ArrBuffers<N, B, T> || CBuffers<N, B, T>;
+
 
 	// TODO concept Conjuctable - elements, that may be merged - individual items Contents or Buffers
 	// TODO concept Conjuctable <temporarily> declared as [true], need be corrected
 	template<std::size_t N, typename C, typename T>
 	concept Conjuctable = Contents<T> && (std::same_as<C, T> || Buffers<N, C, T>);
 
-
-
-	//!
-	// Template function "aso::arr::splitter()" - split array into individual elements
-	// and returns resulting object by calling the action template procedure with all splitted items
-	//
-	//
-	// Template parameters:
-	// @tparam Act	  - type of the action executor, functor with template <...> operator()
-	// @tparam TItem  - type the item of input array
-	// @tparam size   - std::size_t, size of input array
-	//
-	// @tparam ... Its - trailng variadic pack types of the splitted individual items from input buffer
-	//
-	// Parameters:
-	// @param[in]	actor - type Act parameter with operator() or a lambda, named or anonymous
-	// @param[in]   buf   - reference to const TItem array, with the "size" sizeof
-	template <Callable Act, typename TItem, std::size_t size, typename... Its>
-	constexpr auto splitter(const Act& action, const TItem (&buf)[size], Its...its);
-
-	/// Direct generation of the std::array from the C-style array - single array only version
-	template <typename Item, std::size_t Sz>
-	constexpr auto gen(Item (&buf)[Sz])
-	{
-	    return splitter([]<typename... Its>(Its... its) constexpr -> std::array<Item, sizeof...(its)> {
-				return { its...};
-			    },
-				buf);
-	}; /* template <> aso::arr::gen() */
-	/// Direct generation of the std::array from the C-style array: additional some items version
-	template <typename Item, std::size_t Sz, typename... Items>
-	constexpr auto gen(Item (&buf)[Sz], Items... items) {
-	    return gen(buf+1, items..., buf[0]);
-	}; /* template <> aso::arr::gen() */
-	/// Direct generation of the std::array from the C-style array: only some items version
-	template <typename... Items>
-	constexpr std::array<const std::common_type<Items...>, sizeof...(Items)> gen(Items... items) {
-	    return {items...};
-	}; /* template <> aso::arr::gen() */
-
-
-	/// template <> aso::arr::make(): Create std::array std::array from the set of the items
-	template <typename... Items>
-	constexpr std::array<const std::common_type<Items...>, sizeof...(Items)>
-	make(Items... items) {
-	    return {items...};
-	}; /* template <> aso::arr::make() */
-
-
-
 	//! Contains the internal tools for manipulation with arrays
 	namespace spec
 	{
 	    //!
-	    // Template function "aso::arr::spec::split()" - recursive implementation functionality of the
-	    // aso::arr::splitter() procedure with calculating index instead the buffer type cast in the
-	    // split process and returns resulting object by calling the action template procedure
-	    // with all splitted items; for using in the aso::arr::split() template procedure
-	    //
-	    // Template parameters:
-	    // @tparam Idx	  - index value in the current recursive call at the splitting sequence
-	    // @tparam Act	  - type of the action executor, functor with template <...> operator()
-	    // @tparam TItem  - type the item of input array
-	    // @tparam size   - std::size_t, size of input array
-	    //
-	    // @tparam ... Its - trailng variadic pack types of the splitted individual items from input buffer
-	    //
-	    // Parameters:
-	    // @param[in]	actor - type Act parameter with operator() or a lambda, named or anonymous
-	    // @param[in]   buf   - reference to const TItem array, with the "size" sizeof
-	    template <std::size_t Offs, Callable Act, typename TItem, /*size_t size,*/ typename... Its>
-	    constexpr auto split(const Act& action, const TItem *buf, Its...its)
-	    {
-		if constexpr (!(Offs > 0))
-		    return action(its...);
-		else
-		    return split<Offs - 1>(action, buf, buf[Offs-1], its...);
-	    }; /* template <> aso::arr::spec::split() */
-
-
-	    //!
-	    // Template function "aso::arr::expand()" - execute the 'act' parameter with expanded buffer
+	    // Template function "aso::arr::distrib()" - execute the 'act' parameter with expanded buffer
 	    //	    of the C-style array to individual items with std::index_sequence
 	    //	    (buffer may be is not a string)
 	    //	    Usage:
 	    // @code
-	    //		expand(action, buffer, make_index_sequence<N>());
+	    //		distrib(action, buffer, make_index_sequence<N>());
 	    // @endcode
 	    //
 	    // Template parameters:
@@ -165,7 +95,6 @@ namespace aso
 	    //!
 	    // Template function "aso::arr::spec::yeld()" - distribute passed buffer into pack
 	    // of individual items & merging it with previous items pack with std::sequence.
-	    // Discard dedicated 'expand()' procedure
 	    //
 	    //	    Usage:
 	    // @code
@@ -184,8 +113,6 @@ namespace aso
 	    //				that must be converted to std::array;
 	    // @param[in] index_sequence<I...> - variadic parameters pack indexes for the split array buffer
 	    //				to the individual items for adding to generated std::array;
-//	    template <Callable Act, typename Item, std::size_t sz, std::size_t... I>
-//	    constexpr auto yeld(const Act& deploy, const Item (&buf)[sz], std::index_sequence<I...>)
 	    template <Callable Act_yeld, Contents Item, std::size_t sz, typename... Items>
 	    constexpr auto yeld(const Act_yeld& act_yeld, const Item (&buf)[sz], const Items ...oldits)
 	    {
@@ -262,15 +189,6 @@ namespace aso
 				    buf1, buf2, bufs...);
 	}; /* template <> aso::arr::merge() */
 
-
-	/// Implementation of the template function "aso::arr::splitter()" - split array into individual elements
-	/// and returns resulting object by calling the action template procedure with all splitted items
-	template <Callable Act, typename TItem, std::size_t Sz, typename... Its>
-	constexpr auto splitter(const Act& action, const TItem (&buf)[Sz], Its...its)
-	{
-	    return spec::split<Sz>(Act(action), buf, its...);
-	}; /* template <> aso::arr::splitter() */
-
     }; /* namespace aso::arr */
 
 
@@ -278,28 +196,43 @@ namespace aso
     namespace str
     {
 
-	// TODO Concept for string items - is Chars8, Chars16 or Chars32 (?) and other needed items
-	//	Chars8:  char, [char8_t - since C++20,] signed char, unsigned char;
-	template<typename T>
-	concept BasicChars = std::same_as<std::remove_pointer_t<std::decay_t<T>>, char> ||
-			std::same_as<std::remove_pointer_t<std::decay_t<T>>, signed char> ||
-			std::same_as<std::remove_pointer_t<std::decay_t<T>>, unsigned char>;
-	template<typename T>
-	concept BasicChars2 = requires {
-	    requires std::same_as<std::remove_pointer_t<std::decay_t<T>>, char> ||
-			std::same_as<std::remove_pointer_t<std::decay_t<T>>, signed char> ||
-			std::same_as<std::remove_pointer_t<std::decay_t<T>>, unsigned char>;
+	// Concepts for string items - is Chars8, Chars16 or Chars32 (?) and other needed items
+	//	Chars8:  char, signed char, unsigned char; char8_t [since C++20] - mpved to ExtraChars
+	template<typename C>
+	concept BasicChars = requires (const std::remove_pointer_t<std::decay_t<C>> c)
+	{
+	    requires std::same_as<decltype(c), char> ||
+		std::same_as<decltype(c), signed char> ||
+		std::same_as<decltype(c), unsigned char>;
 	};
-	 //  Concept for string items - extra chars - char16_t, 32_t, wchar_t
-	template<typename T>
-	concept ExtraChars = std::same_as<std::remove_pointer_t<std::decay_t<T>>, char8_t> ||
-			std::same_as<std::remove_pointer_t<std::decay_t<T>>, char16_t> ||
-			std::same_as<std::remove_pointer_t<std::decay_t<T>>, char32_t> ||
-			std::same_as<std::remove_pointer_t<std::decay_t<T>>, wchar_t>;
-//	// Concept Chars ::= Chars8 || Chars16 || Chars32 || Wchars
+	//	// Concept Chars ::= Chars8 || Chars16 || Chars32 || Wchars
+	///  Concept for string items - extra chars - char8_t, char16_t, 32_t, wchar_t
+	template<typename C>
+	concept ExtraChars = requires (const std::remove_pointer_t<std::decay_t<C>> c)
+	{
+	    requires std::same_as<decltype(c), char8_t> ||
+		std::same_as<decltype(c), char16_t> ||
+		std::same_as<decltype(c), char32_t> ||
+		std::same_as<decltype(c), wchar_t>;
+	}; /* concept ExtraChars */
+	/// Constrain for string items - basic chars or extra chars
 	template<typename T>
 	concept Chars = BasicChars<T> || ExtraChars<T>;
-	// TODO Concept Strings: is arr::Buffers with string items or a pointer to const items
+
+	/// Constrain for std::string_view items
+	template<typename SV, typename C>
+	concept Views = Chars<C> && std::same_as<SV, std::basic_string_view<const C>>;
+
+	///
+	/// Constrain Strings: is arr::Buffers with string items or a pointer to const items & std::string_view buffers
+	template<std::size_t N, typename S, typename C>
+	concept Strings = arr::Buffers<N, S, C> || arr::PtrBuffers<S, C> || Views<S, C>;
+
+
+	// Constrain Stringable - string elements, that may be merged into std::array
+	template<std::size_t N, typename S, typename C>
+	concept Stringable = Chars<C> || Strings<N, S, C>;
+
 
 	//! Contains the internal tools for manipulation with strings
 	namespace spec
@@ -398,6 +331,106 @@ template <typename item, std::size_t size>
 inline std::ostream& operator << (std::ostream& out, const std::array<item, size> &arr) {
 	return out << arr.data();
 };
+
+
+//! 2'nd instance of the aso::namespace - older utilities for istory & exaple
+namespace aso
+{
+
+    //! older utilities for manipulating with std::array objects & other kind of buffers
+    namespace arr
+    {
+	//!
+	// Template function "aso::arr::splitter()" - split array into individual elements
+	// and returns resulting object by calling the action template procedure with all splitted items
+	//
+	//
+	// Template parameters:
+	// @tparam Act	  - type of the action executor, functor with template <...> operator()
+	// @tparam TItem  - type the item of input array
+	// @tparam size   - std::size_t, size of input array
+	//
+	// @tparam ... Its - trailng variadic pack types of the splitted individual items from input buffer
+	//
+	// Parameters:
+	// @param[in]	actor - type Act parameter with operator() or a lambda, named or anonymous
+	// @param[in]   buf   - reference to const TItem array, with the "size" sizeof
+	template <Callable Act, typename TItem, std::size_t size, typename... Its>
+	constexpr auto splitter(const Act& action, const TItem (&buf)[size], Its...its);
+
+	/// Direct generation of the std::array from the C-style array - single array only version
+	template <typename Item, std::size_t Sz>
+	constexpr auto gen(Item (&buf)[Sz])
+	{
+	    return splitter([]<typename... Its>(Its... its) constexpr -> std::array<Item, sizeof...(its)> {
+				return { its...};
+			    },
+				buf);
+	}; /* template <> aso::arr::gen() */
+	/// Direct generation of the std::array from the C-style array: additional some items version
+	template <typename Item, std::size_t Sz, typename... Items>
+	constexpr auto gen(Item (&buf)[Sz], Items... items) {
+	    return gen(buf+1, items..., buf[0]);
+	}; /* template <> aso::arr::gen() */
+	/// Direct generation of the std::array from the C-style array: only some items version
+	template <typename... Items>
+	constexpr std::array<const std::common_type<Items...>, sizeof...(Items)> gen(Items... items) {
+	    return {items...};
+	}; /* template <> aso::arr::gen() */
+
+
+	/// template <> aso::arr::make(): Create std::array std::array from the set of the items
+	template <typename... Items>
+	constexpr std::array<const std::common_type<Items...>, sizeof...(Items)>
+	make(Items... items) {
+	    return {items...};
+	}; /* template <> aso::arr::make() */
+
+
+
+	//! Contains the internal tools for manipulation with arrays
+	namespace spec
+	{
+	    //!
+	    // Template function "aso::arr::spec::split()" - recursive implementation functionality of the
+	    // aso::arr::splitter() procedure with calculating index instead the buffer type cast in the
+	    // split process and returns resulting object by calling the action template procedure
+	    // with all splitted items; for using in the aso::arr::split() template procedure
+	    //
+	    // Template parameters:
+	    // @tparam Idx	  - index value in the current recursive call at the splitting sequence
+	    // @tparam Act	  - type of the action executor, functor with template <...> operator()
+	    // @tparam TItem  - type the item of input array
+	    // @tparam size   - std::size_t, size of input array
+	    //
+	    // @tparam ... Its - trailng variadic pack types of the splitted individual items from input buffer
+	    //
+	    // Parameters:
+	    // @param[in]	actor - type Act parameter with operator() or a lambda, named or anonymous
+	    // @param[in]   buf   - reference to const TItem array, with the "size" sizeof
+	    template <std::size_t Offs, Callable Act, typename TItem, /*size_t size,*/ typename... Its>
+	    constexpr auto split(const Act& action, const TItem *buf, Its...its)
+	    {
+		if constexpr (!(Offs > 0))
+		    return action(its...);
+		else
+		    return split<Offs - 1>(action, buf, buf[Offs-1], its...);
+	    }; /* template <> aso::arr::spec::split() */
+
+	}; /* namespace aso::arr::spec */
+
+
+	/// Implementation of the template function "aso::arr::splitter()" - split array into individual elements
+	/// and returns resulting object by calling the action template procedure with all splitted items
+	template <Callable Act, typename TItem, std::size_t Sz, typename... Its>
+	constexpr auto splitter(const Act& action, const TItem (&buf)[Sz], Its...its)
+	{
+	    return spec::split<Sz>(Act(action), buf, its...);
+	}; /* template <> aso::arr::splitter() */
+
+    }; /* namespace aso::arr */
+
+}; /* namespace aso */
 
 
 #endif	// __AARRAYS_HPP__
