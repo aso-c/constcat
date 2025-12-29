@@ -3,8 +3,8 @@
 // @author      : Andrey Solomatov (aso)
 // Copyright    : Copyright (c) aso by 17.11.25.
 // @date Created  07.11.2025
-//       Updated  25.12.2025
-// @version     : v.0.8.5.8(s)
+//       Updated  29.12.2025
+// @version     : v.0.8.5.10(s)
 // @description : Literally merging the ANSI-style strings into a generated std::array.
 //		  For various uses, such as initializing std::string_view.
 //		  Secuental implementation of the expansion of the array items values.
@@ -32,58 +32,71 @@ namespace aso
     namespace arr
     {
 
-	// Constrains for storable contents of arrays - is copyable with constexpr/consteval copy expression
-	// and/or regular of semiregular
-	// [объявить Contents - константным скаляром [для "внешних" данных]? И ввести MidContents - для промежуточных результатов?]
-	template<typename Ct>
-	concept Contents =  std::is_const_v<Ct> && std::/*copyable*/regular<std::remove_pointer_t<std::decay_t<Ct>>>;
-
-	// Constrains for std::array buffers:
-	template<typename A>
-	concept ArrBuffers = /*Contents<T> && std::same_as<B, std::array<const T, N>>;*/
-		Contents<typename A::value_type> && std::same_as<A, std::array<typename A::value_type, std::tuple_size_v<A>()>>;
-//	    requires (A arr)
-//	{
-//	    std::is_array<A>();
-//	    { arr[0] } -> Contents<>;
-//	}; /* CBuffers */
-
-	// Constrains for ANSI C array buffers:
-	template<typename B>
-	concept CBuffers = requires (B b)
+	namespace helpers
 	{
-	    std::is_array<B>();
-	    { b[0] } -> Contents<>;
-	}; /* CBuffers */
+	    // Intermediate constrain for storable contents of arrays - is copyable with constexpr/consteval copy expression
+	    // and/or regular of semiregular/regular or scalar;
+	    // NOT the content
+	    template<typename Ci>
+	    concept ContentMid = std::/*copyable*//*is_scalar*/regular<std::remove_pointer_t<std::decay_t<Ci>>>;
 
-	// Constrains for ANSI C bounded array buffers:
-	template<typename B>
-	concept CBoundBuffers = CBuffers<B> && std::is_bounded_array<B>();
+	    // Final constrain for storable contents of arrays - is const && helper::ContentMid
+	    // and/or regular of semiregular
+	    template<typename Ct>
+	    concept Contents = std::is_const_v<Ct> && ContentMid<Ct>;
 
-	// Constrains PtrBuffer - pointer to const ANSI C array of const items (Contents)
-	template<typename P>
-	concept PtrBuffers = requires (P p)
-	{
-	    std::is_pointer<P>();
-	    {*p} -> Contents<>;
-	}; /* PtrBuffers */
+	    // Constrains for std::array buffers:
+	    template<typename A>
+	    concept ArrBuffers = requires
+	    {
+		requires Contents<typename A::value_type>;
+		requires std::same_as<A, std::array<typename A::value_type, std::tuple_size_v<A>()>>;
+	    }; /* ArrBuffers */
+
+	    // Constrains for ANSI C array buffers:
+	    template<typename B>
+	    concept CBuffers = requires (B b)
+	    {
+		requires std::is_array<B>();
+		{ b[0] } -> Contents<>;
+	    }; /* CBuffers */
+
+	    // Constrains for ANSI C bounded array buffers:
+	    template<typename B>
+	    concept CBoundBuffers = requires
+	    {
+		requires CBuffers<B>;
+		std::is_bounded_array<B>();
+	    };
+
+	    // Constrains PtrBuffer - pointer to const ANSI C array of const items (Contents)
+	    template<typename P>
+	    concept PtrBuffers = requires (P p)
+	    {
+		requires std::is_pointer<P>();
+		{*p} -> Contents<>;
+	    }; /* PtrBuffers */
+
+	}; /* namespace aso::arr::helpers*/
+
+	// Import final constrain for storable contents of arrays - helpers::Contents into this namespace
+	using helpers::Contents;
 
 	// Concept Buffers: buffers, that is is ANSI C array or std::array of Contents
 	template<typename B>
-	concept Buffers = ArrBuffers<B> || CBuffers<B>;
+	concept Buffers = helpers::ArrBuffers<B> || helpers::CBoundBuffers<B>;
 
 
-	// TODO concept Conjuctable - elements, that may be merged - individual items Contents or Buffers
-	// TODO concept Conjuctable <temporarily> declared as [true], need be corrected
-	template</*std::size_t N,*/ typename C/*, typename T*/>
-//	concept Conjuctable = Contents<T> && (std::same_as<C, T> || Buffers<N, C, T>);
-	concept Conjuctable = Contents<C> || Buffers</*N,*/ C/*, T*/>;
+	// Constrain Conjuctable - elements, that may be merged - individual items Contents or Buffers
+	template<typename C>
+	concept Conjuctable = Contents<C> || Buffers<C>;
+
 
 	//! Contains the internal tools for manipulation with arrays
-	namespace spec
+	namespace helpers
 	{
 	    //!
-	    // Template function "aso::arr::distrib()" - execute the 'act' parameter with expanded buffer
+	    // Template function "aso::arr::helpers::distrib()" - execute the 'act' parameter with expanded buffer
 	    //	    of the C-style array to individual items with std::index_sequence
 	    //	    (buffer may be is not a string)
 	    //	    Usage:
@@ -105,15 +118,14 @@ namespace aso
 	    // @param[in] index_sequence<I...> - variadic parameters pack of the splitted individual items
 	    //			for adding to generated std::array
 	    template <Callable Deployment, Contents Item, std::size_t Sz, size_t... I>
-	    constexpr /*std::array<const std::common_type_t<Item, Its...>, Sz+sizeof...(Its)>*/
 	    auto distrib(const Deployment &deploy, Item (&buf)[Sz], std::index_sequence<I...>)
 	    {
 		return deploy(buf[I]...);
-	    }; /* template <> aso::arr::spec::distrib() */
+	    }; /* template <> aso::arr::helpers::distrib() */
 
 
 	    //!
-	    // Template function "aso::arr::spec::yeld()" - distribute passed buffer into pack
+	    // Template function "aso::arr::helpers::yeld()" - distribute passed buffer into pack
 	    // of individual items & merging it with previous items pack with std::sequence.
 	    //
 	    //	    Usage:
@@ -134,16 +146,16 @@ namespace aso
 	    // @param[in] index_sequence<I...> - variadic parameters pack indexes for the split array buffer
 	    //				to the individual items for adding to generated std::array;
 	    template <Callable Act_yeld, Contents Item, std::size_t sz, typename/*Contents*/... Items>
-	    constexpr auto yeld(const Act_yeld& act_yeld, /*const*/ Item (&buf)[sz], /*const*/ Items ...oldits)
+	    constexpr auto yeld(const Act_yeld& act_yeld, Item (&buf)[sz], Items ...oldits)
 	    {
 		return distrib([act_yeld, oldits...] <typename /*Contents*/... Its>(Its... its) constexpr {
 		    return act_yeld(its..., oldits...);
 		}, buf, std::make_index_sequence<sz>());
-	    }; /* template <> aso::arr::spec::yeld() */
+	    }; /* template <> aso::arr::helpers::yeld() */
 
 
 	    //!
-	    // Template function "aso::arr::spec::emit()" - unwinds a set of passed string buffers,
+	    // Template function "aso::arr::helpers::emit()" - unwinds a set of passed string buffers,
 	    // pick up fust buffer & send it to the aso::arr::yeld() procedure in a recursive calls chain.
 	    // Initial and intermediate versions with an any number of buffers.
 	    //
@@ -163,29 +175,24 @@ namespace aso
 	    // @param[in] bufs  - variadic pack of reference to const arrays of the any sizes, that must be processed
 	    // @param[in] nxits - variadic parameters pack of the distributed individual items of the current array buff
 	    //			  for passing to inner lambda in the yeld() expanding buffer procedure
-	    template <Callable Act, /*typename*/Contents Item, std::size_t sz, std::size_t... sizes>
-	    constexpr auto emit(const Act& act, /*const*/ Item (&buf)[sz], /*const*/ Item (&...bufs)[sizes])
+	    template <Callable Act, Contents Item, std::size_t sz, std::size_t... sizes>
+	    constexpr auto emit(const Act& act, Item (&buf)[sz], Item (&...bufs)[sizes])
 	    {
-//		return emit([act, &buf]<typename... NxIts>(NxIts... nxits) constexpr {
-//			    return yeld([act, nxits...]<typename... Its>(Its... its) constexpr {
-//				return act(its..., nxits...);
-//			    }, buf, std::make_index_sequence<sz>());
-//			}, bufs...);
 		return emit([act, &buf]<typename/*Contents*/... Its>(Its... its) constexpr {
 			    return yeld(act, buf, its...);
 			},
 			    bufs...);
-	    }; /* template <> aso::arr::spec::emit() */
+	    }; /* template <> aso::arr::helpers::emit() */
 
-	    /// Terminal simple version of the template function "aso::arr::emit()"
+	    /// Terminal simple version of the template function "aso::arr::helpers::emit()"
 	    /// All parameters similar as at the full version, except for dropped out.
 	    template <Callable Act_em>
 	    constexpr auto emit(const Act_em& act_em)
 	    {
 		return act_em();
-	    }; /* template <> aso::arr::spec::emit() */
+	    }; /* template <> aso::arr::helpers::emit() */
 
-	}; /* namespace aso::arr::spec */
+	}; /* namespace aso::arr::helpers */
 
 
 
@@ -200,12 +207,12 @@ namespace aso
 	// Parameters:
 	// @param[in]   bufs  - variadic parameters pack of reference to set of the const C-style string buffers,
 	//		that must be concatenated
-	template </*typename*/Contents It1, std::size_t Sz1, /*typename*/Contents It2, std::size_t Sz2, std::size_t... Szs>
+	template <Contents It1, std::size_t Sz1, Contents It2, std::size_t Sz2, std::size_t... Szs>
 	constexpr auto merge(It1 (&buf1)[Sz1], It2 (&buf2)[Sz2], auto (&...bufs)[Szs])
 //	template </*Contents It1*/Buffers Buff1, /*std::size_t Sz1,*/ /*Contents It2*/Buffers Buff2, /*std::size_t Sz2,*/ /*std::size_t*/Buffers... Buffs/*Szs*/>
 //	constexpr auto merge(/*It1 (&buf1)[Sz1]*/Buff1 buf1, /*It2 (&buf2)[Sz2]*/Buff2 buf2, /*auto (&...bufs)[Szs]*/Buffs... bufs)
 	{
-	    return spec::emit([]<typename /*Contents*/... Its>(Its... its) constexpr -> /*const*/ std::array<std::common_type_t<Its...>, sizeof...(Its)> {
+	    return helpers::emit([]<typename /*Contents*/... Its>(Its... its) constexpr -> std::array<std::common_type_t<Its...>, sizeof...(Its)> {
 				    return { its...};
 				},
 				    buf1, buf2, bufs...);
@@ -217,47 +224,56 @@ namespace aso
     //! utilities for manipulating with generalized strings
     namespace str
     {
-
-	// Concepts for string items - is Chars8, Chars16 or Chars32 (?) and other needed items
-	//	Chars8:  char, signed char, unsigned char; char8_t [since C++20] - mpved to ExtraChars
-	template<typename C>
-	concept BasicChars = requires (const std::remove_pointer_t<std::decay_t<C>> c)
+	namespace helpers
 	{
-	    requires std::is_const<C>() && (std::same_as<decltype(c), char> ||
-		std::same_as<decltype(c), signed char> ||
-		std::same_as<decltype(c), unsigned char>);
-	};
-	//	// Concept Chars ::= Chars8 || Chars16 || Chars32 || Wchars
-	///  Concept for string items - extra chars - char8_t, char16_t, 32_t, wchar_t
-	template<typename C>
-	concept ExtraChars = requires (const std::remove_pointer_t<std::decay_t<C>> c)
-	{
-	    requires std::is_const<C>() && (std::same_as<decltype(c), char8_t> ||
-		std::same_as<decltype(c), char16_t> ||
-		std::same_as<decltype(c), char32_t> ||
-		std::same_as<decltype(c), wchar_t>);
-	}; /* concept ExtraChars */
-	/// Constrain for string items - basic chars or extra chars
-	template<typename T>
-	concept Chars = BasicChars<T> || ExtraChars<T>;
+	    using namespace arr::helpers;
+	    // Concepts for string items - is Chars8, Chars16 or Chars32 (?) and other needed items
+	    //	Chars8:  char, signed char, unsigned char; char8_t [since C++20] - mpved to ExtraChars
+	    template<typename C>
+	    concept BasicChars = requires (const std::remove_pointer_t<std::decay_t<C>> c)
+	    {
+		requires std::is_const<C>() && (std::same_as<decltype(c), char> ||
+					std::same_as<decltype(c), signed char> ||
+					std::same_as<decltype(c), unsigned char>);
+	    };
+	    //	// Concept Chars ::= Chars8 || Chars16 || Chars32 || Wchars
+	    ///  Concept for string items - extra chars - char8_t, char16_t, 32_t, wchar_t
+	    template<typename C>
+	    concept ExtraChars = requires (const std::remove_pointer_t<std::decay_t<C>> c)
+	    {
+		requires std::is_const<C>() && (std::same_as<decltype(c), char8_t> ||
+						std::same_as<decltype(c), char16_t> ||
+						std::same_as<decltype(c), char32_t> ||
+						std::same_as<decltype(c), wchar_t>);
+	    }; /* concept ExtraChars */
 
-	/// Constrain for std::string_view items
-	template<typename SV>
-	concept Views = Chars<typename SV::value_type> && std::same_as<SV, std::basic_string_view<typename SV::value_type>>;
+	    /// Constrain for string items - basic chars or extra chars
+	    template<typename T>
+	    concept Chars = helpers::BasicChars<T> || helpers::ExtraChars<T>;
+
+	    /// Constrain for std::string_view items
+	    template<typename SV>
+	    concept Views = Chars<typename SV::value_type> && std::same_as<SV, std::basic_string_view<typename SV::value_type>>;
+
+	}; /* aso::str::helpers */
+
+
+	/// Import helpers::Chars into this namespace
+	using helpers::Chars;
 
 	///
 	/// Constrain Strings: is arr::Buffers with string items or a pointer to const items & std::string_view buffers
-	template</*std::size_t N,*/ typename S/*, typename C*/>
-	concept Strings = arr::Buffers<S> /*|| arr::PtrBuffers<S> || Views<S>*/;
+	template<typename S>
+	concept Strings = arr::Buffers<S> || helpers::PtrBuffers<S> || helpers::Views<S>;
 
 
 	// Constrain Stringable - string elements, that may be merged into std::array
-	template</*std::size_t N,*/ typename Sc/*, typename C*/>
-	concept Stringable = Chars<Sc> || Strings</*N,*/ Sc/*, C*/>;
+	template<typename Sc>
+	concept Stringable = Chars<Sc> || Strings<Sc>;
 
 
 	//! Contains the internal tools for manipulation with strings
-	namespace spec
+	namespace helpers
 	{
 	    //!
 	    // Template function "aso::str::spec::yeld()" - expand passed string buffer into pack
@@ -265,14 +281,14 @@ namespace aso
 	    template <Callable Act_yeld, typename Item, std::size_t sz, typename... Items>
 	    constexpr auto yeld(const Act_yeld& act_yeld, const Item (&buf)[sz], const Items ...items)
 	    {
-		return arr::spec::distrib([act_yeld, items...] <typename... Its>(Its... its) constexpr {
+		return arr::helpers::distrib([act_yeld, items...] <typename... Its>(Its... its) constexpr {
 		    return act_yeld(its..., items...);
 		}, buf, std::make_index_sequence<sz-1>());
-	    }; /* template <> aso::str::spec::yeld() */
+	    }; /* template <> aso::str::helpers::yeld() */
 
 
 	    //!
-	    // Template function "aso::str::spec::emit()" - unwinds a set of passed string buffers,
+	    // Template function "aso::str::helpers::emit()" - unwinds a set of passed string buffers,
 	    // pick up fust buffer & send it to the aso::arr::yeld() procedure in a recursive calls chain.
 	    // Initial and intermediate versions with an any number of buffers.
 	    //
@@ -293,17 +309,17 @@ namespace aso
 			    return yeld(act, buf, its...);
 			},
 			    bufs...);
-	    }; /* template <> aso::str::spec::emit() */
+	    }; /* template <> aso::str::helpers::emit() */
 
-	    /// Terminal simple version of the template function "aso::arr::emit()"
+	    /// Terminal simple version of the template function "aso::arr::helpers::emit()"
 	    /// All parameters similar as at the full version, except for dropped out.
 	    template <Callable Act_em>
 	    constexpr auto emit(const Act_em& act_em)
 	    {
 		return act_em();
-	    }; /* template <> aso::str::spec::emit() */
+	    }; /* template <> aso::str::helpers::emit() */
 
-	}; /* namespace aso::str::spec */
+	}; /* namespace aso::str::helpers */
 
 
 
@@ -320,7 +336,7 @@ namespace aso
 	template <typename Item, std::size_t... sizes>
 	constexpr auto merge(const Item (&...bufs)[sizes])
 	{
-	    return spec::emit([]<typename... Its>(Its... its) constexpr -> const std::array<std::common_type_t<Its...>, sizeof...(Its)+1>
+	    return helpers::emit([]<typename... Its>(Its... its) constexpr -> const std::array<std::common_type_t<Its...>, sizeof...(Its)+1>
 				{ return { its..., '\0'};}, bufs...);
 	}; /* template <> aso::str::merge() */
 
@@ -411,7 +427,7 @@ namespace aso
 
 
 	//! Contains the internal tools for manipulation with arrays
-	namespace spec
+	namespace helpers
 	{
 	    //!
 	    // Template function "aso::arr::spec::split()" - recursive implementation functionality of the
@@ -439,7 +455,7 @@ namespace aso
 		    return split<Offs - 1>(action, buf, buf[Offs-1], its...);
 	    }; /* template <> aso::arr::spec::split() */
 
-	}; /* namespace aso::arr::spec */
+	}; /* namespace aso::arr::helpers */
 
 
 	/// Implementation of the template function "aso::arr::splitter()" - split array into individual elements
@@ -447,7 +463,7 @@ namespace aso
 	template <Callable Act, typename TItem, std::size_t Sz, typename... Its>
 	constexpr auto splitter(const Act& action, const TItem (&buf)[Sz], Its...its)
 	{
-	    return spec::split<Sz>(Act(action), buf, its...);
+	    return helpers::split<Sz>(Act(action), buf, its...);
 	}; /* template <> aso::arr::splitter() */
 
     }; /* namespace aso::arr */
