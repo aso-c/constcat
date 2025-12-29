@@ -223,9 +223,9 @@ int main()
     std::clog << "to std::array<>:" << std::endl;
 
 
-	const char aa[] = {'A', 'b', 'b', 'a'};
-	const char sp[] = { ' ', '-', ' '};
-	const char bb[] = "Bolding";
+	constexpr const char aa[] = {'A', 'b', 'b', 'a'};
+	constexpr const char sp[] = { ' ', '-', ' '};
+	constexpr const char bb[] = "Bolding";
 	std::array ssarr = aso::arr::merge(aa, sp, bb);
 
 

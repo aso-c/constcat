@@ -3,8 +3,8 @@
 // @author      : Andrey Solomatov (aso)
 // Copyright    : Copyright (c) aso by 17.11.25.
 // @date Created  07.11.2025
-//       Updated  24.12.2025
-// @version     : v.0.8.5.7(s)
+//       Updated  25.12.2025
+// @version     : v.0.8.5.8(s)
 // @description : Literally merging the ANSI-style strings into a generated std::array.
 //		  For various uses, such as initializing std::string_view.
 //		  Secuental implementation of the expansion of the array items values.
@@ -13,6 +13,7 @@
 #ifndef __AARRAYS_HPP__
 #define __AARRAYS_HPP__
 
+#include <type_traits>
 #include <concepts>
 
 
@@ -33,31 +34,50 @@ namespace aso
 
 	// Constrains for storable contents of arrays - is copyable with constexpr/consteval copy expression
 	// and/or regular of semiregular
-	template<typename T>
-	concept Contents = /*std::copyable<std::remove_pointer_t<std::decay_t<T>>>*/
-			    std::regular<std::remove_pointer_t<std::decay_t<T>>>;
+	// [объявить Contents - константным скаляром [для "внешних" данных]? И ввести MidContents - для промежуточных результатов?]
+	template<typename Ct>
+	concept Contents =  std::is_const_v<Ct> && std::/*copyable*/regular<std::remove_pointer_t<std::decay_t<Ct>>>;
 
 	// Constrains for std::array buffers:
-	template<std::size_t N, typename B, typename T>
-	concept ArrBuffers = Contents<T> && std::same_as<B, std::array<const T, N>>;
+	template<typename A>
+	concept ArrBuffers = /*Contents<T> && std::same_as<B, std::array<const T, N>>;*/
+		Contents<typename A::value_type> && std::same_as<A, std::array<typename A::value_type, std::tuple_size_v<A>()>>;
+//	    requires (A arr)
+//	{
+//	    std::is_array<A>();
+//	    { arr[0] } -> Contents<>;
+//	}; /* CBuffers */
 
 	// Constrains for ANSI C array buffers:
-	template<std::size_t N, typename B, typename T>
-	concept CBuffers = Contents<T> && std::same_as<B, const T[N]>;
+	template<typename B>
+	concept CBuffers = requires (B b)
+	{
+	    std::is_array<B>();
+	    { b[0] } -> Contents<>;
+	}; /* CBuffers */
+
+	// Constrains for ANSI C bounded array buffers:
+	template<typename B>
+	concept CBoundBuffers = CBuffers<B> && std::is_bounded_array<B>();
 
 	// Constrains PtrBuffer - pointer to const ANSI C array of const items (Contents)
-	template<typename P, typename T> /*requires Contents<T>*/
-	concept PtrBuffers = Contents<T> && std::same_as<P, const T*>;
+	template<typename P>
+	concept PtrBuffers = requires (P p)
+	{
+	    std::is_pointer<P>();
+	    {*p} -> Contents<>;
+	}; /* PtrBuffers */
 
 	// Concept Buffers: buffers, that is is ANSI C array or std::array of Contents
-	template<std::size_t N, typename B, typename T>
-	concept Buffers = ArrBuffers<N, B, T> || CBuffers<N, B, T>;
+	template<typename B>
+	concept Buffers = ArrBuffers<B> || CBuffers<B>;
 
 
 	// TODO concept Conjuctable - elements, that may be merged - individual items Contents or Buffers
 	// TODO concept Conjuctable <temporarily> declared as [true], need be corrected
-	template<std::size_t N, typename C, typename T>
-	concept Conjuctable = Contents<T> && (std::same_as<C, T> || Buffers<N, C, T>);
+	template</*std::size_t N,*/ typename C/*, typename T*/>
+//	concept Conjuctable = Contents<T> && (std::same_as<C, T> || Buffers<N, C, T>);
+	concept Conjuctable = Contents<C> || Buffers</*N,*/ C/*, T*/>;
 
 	//! Contains the internal tools for manipulation with arrays
 	namespace spec
@@ -86,7 +106,7 @@ namespace aso
 	    //			for adding to generated std::array
 	    template <Callable Deployment, Contents Item, std::size_t Sz, size_t... I>
 	    constexpr /*std::array<const std::common_type_t<Item, Its...>, Sz+sizeof...(Its)>*/
-	    auto distrib(Deployment const &deploy, Item (&buf)[Sz], std::index_sequence<I...>)
+	    auto distrib(const Deployment &deploy, Item (&buf)[Sz], std::index_sequence<I...>)
 	    {
 		return deploy(buf[I]...);
 	    }; /* template <> aso::arr::spec::distrib() */
@@ -113,10 +133,10 @@ namespace aso
 	    //				that must be converted to std::array;
 	    // @param[in] index_sequence<I...> - variadic parameters pack indexes for the split array buffer
 	    //				to the individual items for adding to generated std::array;
-	    template <Callable Act_yeld, Contents Item, std::size_t sz, typename... Items>
-	    constexpr auto yeld(const Act_yeld& act_yeld, const Item (&buf)[sz], const Items ...oldits)
+	    template <Callable Act_yeld, Contents Item, std::size_t sz, typename/*Contents*/... Items>
+	    constexpr auto yeld(const Act_yeld& act_yeld, /*const*/ Item (&buf)[sz], /*const*/ Items ...oldits)
 	    {
-		return distrib([act_yeld, oldits...] <typename... Its>(Its... its) constexpr {
+		return distrib([act_yeld, oldits...] <typename /*Contents*/... Its>(Its... its) constexpr {
 		    return act_yeld(its..., oldits...);
 		}, buf, std::make_index_sequence<sz>());
 	    }; /* template <> aso::arr::spec::yeld() */
@@ -144,14 +164,14 @@ namespace aso
 	    // @param[in] nxits - variadic parameters pack of the distributed individual items of the current array buff
 	    //			  for passing to inner lambda in the yeld() expanding buffer procedure
 	    template <Callable Act, /*typename*/Contents Item, std::size_t sz, std::size_t... sizes>
-	    constexpr auto emit(const Act& act, const Item (&buf)[sz], const Item (&...bufs)[sizes])
+	    constexpr auto emit(const Act& act, /*const*/ Item (&buf)[sz], /*const*/ Item (&...bufs)[sizes])
 	    {
 //		return emit([act, &buf]<typename... NxIts>(NxIts... nxits) constexpr {
 //			    return yeld([act, nxits...]<typename... Its>(Its... its) constexpr {
 //				return act(its..., nxits...);
 //			    }, buf, std::make_index_sequence<sz>());
 //			}, bufs...);
-		return emit([act, &buf]<typename... Its>(Its... its) constexpr {
+		return emit([act, &buf]<typename/*Contents*/... Its>(Its... its) constexpr {
 			    return yeld(act, buf, its...);
 			},
 			    bufs...);
@@ -182,8 +202,10 @@ namespace aso
 	//		that must be concatenated
 	template </*typename*/Contents It1, std::size_t Sz1, /*typename*/Contents It2, std::size_t Sz2, std::size_t... Szs>
 	constexpr auto merge(It1 (&buf1)[Sz1], It2 (&buf2)[Sz2], auto (&...bufs)[Szs])
+//	template </*Contents It1*/Buffers Buff1, /*std::size_t Sz1,*/ /*Contents It2*/Buffers Buff2, /*std::size_t Sz2,*/ /*std::size_t*/Buffers... Buffs/*Szs*/>
+//	constexpr auto merge(/*It1 (&buf1)[Sz1]*/Buff1 buf1, /*It2 (&buf2)[Sz2]*/Buff2 buf2, /*auto (&...bufs)[Szs]*/Buffs... bufs)
 	{
-	    return spec::emit([]<typename... Its>(Its... its) constexpr -> const std::array<std::common_type_t<Its...>, sizeof...(Its)> {
+	    return spec::emit([]<typename /*Contents*/... Its>(Its... its) constexpr -> /*const*/ std::array<std::common_type_t<Its...>, sizeof...(Its)> {
 				    return { its...};
 				},
 				    buf1, buf2, bufs...);
@@ -201,37 +223,37 @@ namespace aso
 	template<typename C>
 	concept BasicChars = requires (const std::remove_pointer_t<std::decay_t<C>> c)
 	{
-	    requires std::same_as<decltype(c), char> ||
+	    requires std::is_const<C>() && (std::same_as<decltype(c), char> ||
 		std::same_as<decltype(c), signed char> ||
-		std::same_as<decltype(c), unsigned char>;
+		std::same_as<decltype(c), unsigned char>);
 	};
 	//	// Concept Chars ::= Chars8 || Chars16 || Chars32 || Wchars
 	///  Concept for string items - extra chars - char8_t, char16_t, 32_t, wchar_t
 	template<typename C>
 	concept ExtraChars = requires (const std::remove_pointer_t<std::decay_t<C>> c)
 	{
-	    requires std::same_as<decltype(c), char8_t> ||
+	    requires std::is_const<C>() && (std::same_as<decltype(c), char8_t> ||
 		std::same_as<decltype(c), char16_t> ||
 		std::same_as<decltype(c), char32_t> ||
-		std::same_as<decltype(c), wchar_t>;
+		std::same_as<decltype(c), wchar_t>);
 	}; /* concept ExtraChars */
 	/// Constrain for string items - basic chars or extra chars
 	template<typename T>
 	concept Chars = BasicChars<T> || ExtraChars<T>;
 
 	/// Constrain for std::string_view items
-	template<typename SV, typename C>
-	concept Views = Chars<C> && std::same_as<SV, std::basic_string_view<const C>>;
+	template<typename SV>
+	concept Views = Chars<typename SV::value_type> && std::same_as<SV, std::basic_string_view<typename SV::value_type>>;
 
 	///
 	/// Constrain Strings: is arr::Buffers with string items or a pointer to const items & std::string_view buffers
-	template<std::size_t N, typename S, typename C>
-	concept Strings = arr::Buffers<N, S, C> || arr::PtrBuffers<S, C> || Views<S, C>;
+	template</*std::size_t N,*/ typename S/*, typename C*/>
+	concept Strings = arr::Buffers<S> /*|| arr::PtrBuffers<S> || Views<S>*/;
 
 
 	// Constrain Stringable - string elements, that may be merged into std::array
-	template<std::size_t N, typename S, typename C>
-	concept Stringable = Chars<C> || Strings<N, S, C>;
+	template</*std::size_t N,*/ typename Sc/*, typename C*/>
+	concept Stringable = Chars<Sc> || Strings</*N,*/ Sc/*, C*/>;
 
 
 	//! Contains the internal tools for manipulation with strings
