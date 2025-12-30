@@ -226,7 +226,10 @@ int main()
 	constexpr const char aa[] = {'A', 'b', 'b', 'a'};
 	constexpr const char sp[] = { ' ', '-', ' '};
 	constexpr const char bb[] = "Bolding";
-	std::array ssarr = aso::arr::merge(aa, sp, bb);
+	constexpr const char c = ' ';
+	constexpr const char* dd = "dtd";
+	char sst[] = "oppa!!";
+	std::array ssarr = aso::arr::merge(aa, sp, bb, c, "TEST", ':', c, dd, sst);
 
 
     std::clog << "[ Test the buffer merging to std::string_view ] ==> " << ssarr << std::endl;

@@ -3,8 +3,8 @@
 // @author      : Andrey Solomatov (aso)
 // Copyright    : Copyright (c) aso by 17.11.25.
 // @date Created  07.11.2025
-//       Updated  29.12.2025
-// @version     : v.0.8.5.10(s)
+//       Updated  30.12.2025
+// @version     : v.0.8.5.11[tmp](s)
 // @description : Literally merging the ANSI-style strings into a generated std::array.
 //		  For various uses, such as initializing std::string_view.
 //		  Secuental implementation of the expansion of the array items values.
@@ -43,7 +43,7 @@ namespace aso
 	    // Final constrain for storable contents of arrays - is const && helper::ContentMid
 	    // and/or regular of semiregular
 	    template<typename Ct>
-	    concept Contents = std::is_const_v<Ct> && ContentMid<Ct>;
+	    concept Contents = std::/*copyable*//*is_scalar*/regular<std::remove_pointer_t<std::decay_t<Ct>>>;
 
 	    // Constrains for std::array buffers:
 	    template<typename A>
@@ -57,7 +57,7 @@ namespace aso
 	    template<typename B>
 	    concept CBuffers = requires (B b)
 	    {
-		requires std::is_array<B>();
+		requires std::is_array_v<B>;
 		{ b[0] } -> Contents<>;
 	    }; /* CBuffers */
 
@@ -66,14 +66,14 @@ namespace aso
 	    concept CBoundBuffers = requires
 	    {
 		requires CBuffers<B>;
-		std::is_bounded_array<B>();
+		std::is_bounded_array_v<B>;
 	    };
 
 	    // Constrains PtrBuffer - pointer to const ANSI C array of const items (Contents)
 	    template<typename P>
 	    concept PtrBuffers = requires (P p)
 	    {
-		requires std::is_pointer<P>();
+		requires std::is_pointer_v<P>;
 		{*p} -> Contents<>;
 	    }; /* PtrBuffers */
 
@@ -175,8 +175,10 @@ namespace aso
 	    // @param[in] bufs  - variadic pack of reference to const arrays of the any sizes, that must be processed
 	    // @param[in] nxits - variadic parameters pack of the distributed individual items of the current array buff
 	    //			  for passing to inner lambda in the yeld() expanding buffer procedure
-	    template <Callable Act, Contents Item, std::size_t sz, std::size_t... sizes>
-	    constexpr auto emit(const Act& act, Item (&buf)[sz], Item (&...bufs)[sizes])
+//	    template <Callable Act, Contents Item, std::size_t sz, std::size_t... sizes>
+//	    constexpr auto emit(const Act& act, Item (&buf)[sz], Item (&...bufs)[sizes])
+	    template <Callable Act, Contents Item, typename Buf, typename... Buffers>
+	    constexpr auto emit(const Act& act, const Buf& buf, const Buffers (&...bufs))
 	    {
 		return emit([act, &buf]<typename/*Contents*/... Its>(Its... its) constexpr {
 			    return yeld(act, buf, its...);
@@ -207,10 +209,10 @@ namespace aso
 	// Parameters:
 	// @param[in]   bufs  - variadic parameters pack of reference to set of the const C-style string buffers,
 	//		that must be concatenated
-	template <Contents It1, std::size_t Sz1, Contents It2, std::size_t Sz2, std::size_t... Szs>
-	constexpr auto merge(It1 (&buf1)[Sz1], It2 (&buf2)[Sz2], auto (&...bufs)[Szs])
-//	template </*Contents It1*/Buffers Buff1, /*std::size_t Sz1,*/ /*Contents It2*/Buffers Buff2, /*std::size_t Sz2,*/ /*std::size_t*/Buffers... Buffs/*Szs*/>
-//	constexpr auto merge(/*It1 (&buf1)[Sz1]*/Buff1 buf1, /*It2 (&buf2)[Sz2]*/Buff2 buf2, /*auto (&...bufs)[Szs]*/Buffs... bufs)
+//	template <Contents It1, std::size_t Sz1, Contents It2, std::size_t Sz2, std::size_t... Szs>
+//	constexpr auto merge(It1 (&buf1)[Sz1], It2 (&buf2)[Sz2], auto (&...bufs)[Szs])
+    	template <Buffers/*typename*/ Buff1, Buffers/*typename*/ Buff2, /*Buffers*/typename... Buffs>
+    	constexpr auto merge(const Buff1& buf1, const Buff2& buf2, const Buffs(&... bufs))
 	{
 	    return helpers::emit([]<typename /*Contents*/... Its>(Its... its) constexpr -> std::array<std::common_type_t<Its...>, sizeof...(Its)> {
 				    return { its...};
